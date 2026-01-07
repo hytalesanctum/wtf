@@ -1,0 +1,15 @@
+{
+  "name": "encrypted-chatroom",
+  "version": "1.0.0",
+  "description": "A real-time encrypted chatroom with no authentication",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.5.4",
+    "uuid": "^9.0.0"
+  }
+}

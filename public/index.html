@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encrypted Chatroom</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Username Modal -->
+    <div id="usernameModal" class="modal">
+        <div class="modal-content">
+            <h1>Welcome to Encrypted Chat</h1>
+            <p>Enter a username to start chatting</p>
+            <div class="form-group">
+                <input 
+                    type="text" 
+                    id="usernameInput" 
+                    placeholder="Enter your username" 
+                    maxlength="20"
+                    autocomplete="off"
+                >
+                <button id="joinBtn" onclick="joinRoom()">Join Chat</button>
+            </div>
+            <p class="info-text">💬 Messages are end-to-end encrypted • No login required • Share the link</p>
+        </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <div id="chatContainer" class="chat-container hidden">
+        <div class="chat-header">
+            <div class="header-info">
+                <h1>Encrypted Chatroom</h1>
+                <p id="roomInfo" class="room-info"></p>
+            </div>
+            <div class="header-buttons">
+                <button id="darkModeBtn" class="header-btn dark-mode-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
+                <button id="wikiBtn" class="header-btn wiki-btn" onclick="goToWikipedia()" title="Wikipedia Medicine">📚</button>
+                <button id="leaveBtn" class="leave-btn" onclick="leaveChat()">Leave</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="users-section">
+                <h3>Users Online</h3>
+                <div id="usersList" class="users-list"></div>
+            </div>
+        </div>
+
+        <div class="chat-main">
+            <div id="messagesList" class="messages-list"></div>
+
+            <div class="message-input-area">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Type a message... (encrypted)" 
+                    onkeypress="handleKeyPress(event)"
+                    autocomplete="off"
+                >
+                <button id="sendBtn" onclick="sendMessage()" class="send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://tweetnacl.js.org/nacl.min.js"></script>
+    <script src="https://tweetnacl.js.org/nacl-util.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
