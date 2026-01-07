@@ -17,10 +17,10 @@ const io = socketIo(server, {
 const users = new Map();
 const rooms = new Map();
 
-app.use(express.static('public'));
+app.use(express.static('.'));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 io.on('connection', (socket) => {
