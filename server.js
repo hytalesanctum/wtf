@@ -18,6 +18,7 @@ const io = socketIo(server, {
 // Store active users and their room/username mapping
 const users = new Map();
 const rooms = new Map();
+const userPublicKeys = new Map(); // Store public keys: username -> publicKey
 
 // Global room ID
 const GLOBAL_ROOM = 'global';
@@ -92,7 +93,7 @@ io.on('connection', (socket) => {
 
   // User sets their username and joins a room
   socket.on('join_room', (data) => {
-    const { username, roomId } = data;
+    const { username, roomId, publicKey } = data;
     
     // Override roomId to always be the global room
     const actualRoomId = GLOBAL_ROOM;
@@ -104,6 +105,12 @@ io.on('connection', (socket) => {
       roomId: actualRoomId,
       joinedAt: new Date()
     });
+
+    // Store public key
+    if (publicKey) {
+      userPublicKeys.set(username, publicKey);
+      console.log(`Stored public key for ${username}`);
+    }
 
     // Get global room
     const room = rooms.get(actualRoomId);
@@ -124,6 +131,13 @@ io.on('connection', (socket) => {
     // Send current user list to all in room
     io.to(actualRoomId).emit('user_list', room.users.map(u => u.username));
 
+    // Send all public keys to all users in room
+    const publicKeysObj = {};
+    for (const [user, key] of userPublicKeys) {
+      publicKeysObj[user] = key;
+    }
+    io.to(actualRoomId).emit('user_public_keys', publicKeysObj);
+
     console.log(`${username} joined global room`);
   });
 
@@ -136,7 +150,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const { message, encryptedMessage } = data;
+    const { message, isEncrypted } = data;
     const roomId = GLOBAL_ROOM;
 
     // Store message in room history
@@ -144,9 +158,10 @@ io.on('connection', (socket) => {
     if (room) {
       const newMessage = {
         username: user.username,
-        message: encryptedMessage || message,
+        message: message,
         timestamp: new Date(),
-        senderId: socket.id
+        senderId: socket.id,
+        isEncrypted: isEncrypted || false
       };
       room.messages.push(newMessage);
 
@@ -163,9 +178,10 @@ io.on('connection', (socket) => {
     // Broadcast message to all in room
     io.to(roomId).emit('receive_message', {
       username: user.username,
-      message: encryptedMessage || message,
+      message: message,
       timestamp: new Date(),
-      senderId: socket.id
+      senderId: socket.id,
+      isEncrypted: isEncrypted || false
     });
   });
 
@@ -189,6 +205,9 @@ io.on('connection', (socket) => {
       if (room) {
         room.users = room.users.filter(u => u.socketId !== socket.id);
         
+        // Remove public key
+        userPublicKeys.delete(user.username);
+        
         // Notify others
         io.to(GLOBAL_ROOM).emit('user_left', {
           username: user.username,
@@ -197,6 +216,13 @@ io.on('connection', (socket) => {
         });
 
         io.to(GLOBAL_ROOM).emit('user_list', room.users.map(u => u.username));
+        
+        // Update public keys list
+        const publicKeysObj = {};
+        for (const [user, key] of userPublicKeys) {
+          publicKeysObj[user] = key;
+        }
+        io.to(GLOBAL_ROOM).emit('user_public_keys', publicKeysObj);
       }
 
       users.delete(socket.id);

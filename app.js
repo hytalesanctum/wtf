@@ -5,6 +5,7 @@ let currentRoomId = '';
 let encryptionKeys = null;
 let messageLog = [];
 let darkModeEnabled = localStorage.getItem('darkMode') === 'true';
+let userPublicKeys = {}; // Store public keys of all users
 
 // Initialize Socket.IO connection
 function initSocket() {
@@ -28,6 +29,11 @@ function initSocket() {
 
     socket.on('user_list', (users) => {
         updateUserList(users);
+    });
+
+    socket.on('user_public_keys', (keys) => {
+        userPublicKeys = keys;
+        console.log('Received public keys:', Object.keys(userPublicKeys).length, 'users');
     });
 
     socket.on('message_history', (messages) => {
@@ -111,6 +117,11 @@ function joinRoom() {
     // Use fixed global room for everyone
     currentRoomId = 'global';
 
+    // Generate encryption keys for this session
+    encryptionKeys = generateEncryptionKeys();
+    const publicKeyBase64 = nacl.util.encodeBase64(encryptionKeys.publicKey);
+    console.log('Generated keypair, public key:', publicKeyBase64);
+
     // Hide modal and show chat
     document.getElementById('usernameModal').classList.add('hidden');
     document.getElementById('chatContainer').classList.remove('hidden');
@@ -118,10 +129,11 @@ function joinRoom() {
     // Update room info
     document.getElementById('roomInfo').textContent = `Room: ${currentRoomId.substring(0, 8)}... • You are ${username}`;
 
-    // Connect to room
+    // Connect to room with public key
     socket.emit('join_room', {
         username: currentUsername,
-        roomId: currentRoomId
+        roomId: currentRoomId,
+        publicKey: publicKeyBase64
     });
 
     // Request message history
@@ -148,11 +160,30 @@ function sendMessage() {
 
     if (!message) return;
 
-    // For now, send message as-is (encryption happens on receiver side in this simple implementation)
+    let encryptedMessage = message;
+    
+    // Encrypt message if we have public keys from other users
+    if (Object.keys(userPublicKeys).length > 0) {
+        const publicKeyStrings = Object.values(userPublicKeys);
+        if (publicKeyStrings.length > 0) {
+            try {
+                // Use first user's public key for encryption (for broadcast)
+                const recipientPublicKeyBase64 = publicKeyStrings[0];
+                const recipientPublicKey = nacl.util.decodeBase64(recipientPublicKeyBase64);
+                encryptedMessage = encryptMessage(message, recipientPublicKey);
+                console.log('Message encrypted');
+            } catch (e) {
+                console.error('Encryption error:', e);
+                encryptedMessage = message; // Fall back to unencrypted
+            }
+        }
+    }
+
     socket.emit('send_message', {
-        message: message,
+        message: encryptedMessage,
         roomId: currentRoomId,
-        username: currentUsername
+        username: currentUsername,
+        isEncrypted: encryptedMessage !== message
     });
 
     input.value = '';
@@ -174,7 +205,22 @@ function handleReceivedMessage(data) {
     username.textContent = data.username;
 
     const text = document.createElement('p');
-    text.textContent = data.message;
+    
+    // Decrypt message if it's encrypted
+    let displayMessage = data.message;
+    if (data.isEncrypted && userPublicKeys[data.username]) {
+        try {
+            const senderPublicKeyBase64 = userPublicKeys[data.username];
+            const senderPublicKey = nacl.util.decodeBase64(senderPublicKeyBase64);
+            displayMessage = decryptMessage(data.message, senderPublicKey);
+            console.log('Message decrypted');
+        } catch (e) {
+            console.error('Decryption error:', e);
+            displayMessage = '[Decryption failed]';
+        }
+    }
+    
+    text.textContent = displayMessage;
 
     const time = document.createElement('span');
     time.textContent = new Date(data.timestamp).toLocaleTimeString();
@@ -205,7 +251,21 @@ function displayMessageHistory(messages) {
         username.textContent = msg.username;
 
         const text = document.createElement('p');
-        text.textContent = msg.message;
+        
+        // Decrypt message if it's encrypted
+        let displayMessage = msg.message;
+        if (msg.isEncrypted && userPublicKeys[msg.username]) {
+            try {
+                const senderPublicKeyBase64 = userPublicKeys[msg.username];
+                const senderPublicKey = nacl.util.decodeBase64(senderPublicKeyBase64);
+                displayMessage = decryptMessage(msg.message, senderPublicKey);
+            } catch (e) {
+                console.error('Decryption error:', e);
+                displayMessage = '[Decryption failed]';
+            }
+        }
+        
+        text.textContent = displayMessage;
 
         const time = document.createElement('span');
         time.textContent = new Date(msg.timestamp).toLocaleTimeString();
