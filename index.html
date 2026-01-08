@@ -51,14 +51,26 @@
             <div id="messagesList" class="messages-list"></div>
 
             <div class="message-input-area">
-                <input 
-                    type="text" 
+                <button id="wikiInputBtn" class="wiki-input-btn" onclick="toggleWikipediaModal()" title="Toggle Wikipedia">📚</button>
+                <textarea 
                     id="messageInput" 
-                    placeholder="Type a message... (encrypted)" 
+                    placeholder="Type a message... (encrypted) - Shift+Enter for new line" 
                     onkeypress="handleKeyPress(event)"
                     autocomplete="off"
-                >
+                    rows="1"
+                ></textarea>
                 <button id="sendBtn" onclick="sendMessage()" class="send-btn">Send</button>
+            </div>
+        </div>
+
+        <!-- Wikipedia Modal -->
+        <div id="wikipediaModal" class="wiki-modal hidden">
+            <div class="wiki-modal-header">
+                <h2>Wikipedia - Medicine</h2>
+                <button onclick="toggleWikipediaModal()" class="wiki-close-btn">✕</button>
+            </div>
+            <div id="wikipediaContent" class="wiki-modal-content">
+                <p style="text-align: center; padding: 20px; color: #999;">Loading Wikipedia...</p>
             </div>
         </div>
     </div>

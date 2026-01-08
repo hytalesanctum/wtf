@@ -241,6 +241,7 @@ function handleKeyPress(event) {
         event.preventDefault();
         sendMessage();
     }
+    // Shift+Enter allows newline (default textarea behavior)
 }
 
 // Leave chat
@@ -260,6 +261,66 @@ function toggleDarkMode() {
 // Go to Wikipedia Medicine page
 function goToWikipedia() {
     window.open('https://en.wikipedia.org/wiki/Medicine', '_blank');
+}
+
+// Toggle Wikipedia Modal
+function toggleWikipediaModal() {
+    const modal = document.getElementById('wikipediaModal');
+    modal.classList.toggle('hidden');
+    
+    if (!modal.classList.contains('hidden')) {
+        loadWikipediaContent();
+    }
+}
+
+// Load Wikipedia content via API
+async function loadWikipediaContent() {
+    const contentDiv = document.getElementById('wikipediaContent');
+    
+    try {
+        const response = await fetch('https://en.wikipedia.org/api/rest_v1/page/html/Medicine');
+        const html = await response.text();
+        
+        // Parse the HTML and extract main content
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // Get main content and clean it up
+        const mainContent = doc.querySelector('main');
+        if (mainContent) {
+            // Remove unwanted elements
+            const unwantedSelectors = ['script', 'style', '.mw-editsection', '.navbox', '.infobox-full-data', '.reference', '.mw-references'];
+            unwantedSelectors.forEach(selector => {
+                mainContent.querySelectorAll(selector).forEach(el => el.remove());
+            });
+            
+            // Limit content to first few sections
+            const sections = mainContent.querySelectorAll('h1, h2, h3, p');
+            let content = '';
+            let count = 0;
+            
+            sections.forEach(el => {
+                if (count < 200) {
+                    if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'P') {
+                        content += el.outerHTML;
+                        count++;
+                    }
+                }
+            });
+            
+            contentDiv.innerHTML = content || '<p>Content loaded successfully.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading Wikipedia:', error);
+        contentDiv.innerHTML = `
+            <div style="padding: 20px; text-align: center;">
+                <h3>Medicine</h3>
+                <p>Medicine is the science and practice of diagnosing, treating, and preventing disease. It encompasses a wide range of health-care practices evolved to maintain and restore health by the prevention and treatment of illness.</p>
+                <p><strong>Note:</strong> Full Wikipedia content requires internet. Here's a brief overview.</p>
+                <p style="font-size: 12px; color: #999; margin-top: 20px;">Unable to load full Wikipedia page due to network constraints.</p>
+            </div>
+        `;
+    }
 }
 
 // Check if user already has a username in session
