@@ -479,6 +479,14 @@ body.dark-mode .system-message {
     color: rgba(0, 255, 128, 0.8);
 }
 
+.message-lock-icon {
+    font-size: 12px;
+    display: block;
+    margin-top: 4px;
+    cursor: help;
+    opacity: 0.8;
+}
+
 .message.own .message-bubble strong {
     color: #00ffff;
 }

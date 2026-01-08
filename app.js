@@ -208,6 +208,7 @@ function handleReceivedMessage(data) {
     
     // Decrypt message if it's encrypted
     let displayMessage = data.message;
+    let wasEncrypted = data.isEncrypted;
     if (data.isEncrypted && userPublicKeys[data.username]) {
         try {
             const senderPublicKeyBase64 = userPublicKeys[data.username];
@@ -217,6 +218,7 @@ function handleReceivedMessage(data) {
         } catch (e) {
             console.error('Decryption error:', e);
             displayMessage = '[Decryption failed]';
+            wasEncrypted = false;
         }
     }
     
@@ -225,9 +227,15 @@ function handleReceivedMessage(data) {
     const time = document.createElement('span');
     time.textContent = new Date(data.timestamp).toLocaleTimeString();
 
+    const lockIcon = document.createElement('span');
+    lockIcon.className = 'message-lock-icon';
+    lockIcon.title = wasEncrypted ? 'Encrypted' : 'Not encrypted';
+    lockIcon.textContent = wasEncrypted ? '🔒' : '🔓';
+
     bubble.appendChild(username);
     bubble.appendChild(text);
     bubble.appendChild(time);
+    bubble.appendChild(lockIcon);
     messageDiv.appendChild(bubble);
 
     messagesList.appendChild(messageDiv);
@@ -254,6 +262,7 @@ function displayMessageHistory(messages) {
         
         // Decrypt message if it's encrypted
         let displayMessage = msg.message;
+        let wasEncrypted = msg.isEncrypted;
         if (msg.isEncrypted && userPublicKeys[msg.username]) {
             try {
                 const senderPublicKeyBase64 = userPublicKeys[msg.username];
@@ -262,6 +271,7 @@ function displayMessageHistory(messages) {
             } catch (e) {
                 console.error('Decryption error:', e);
                 displayMessage = '[Decryption failed]';
+                wasEncrypted = false;
             }
         }
         
@@ -270,9 +280,15 @@ function displayMessageHistory(messages) {
         const time = document.createElement('span');
         time.textContent = new Date(msg.timestamp).toLocaleTimeString();
 
+        const lockIcon = document.createElement('span');
+        lockIcon.className = 'message-lock-icon';
+        lockIcon.title = wasEncrypted ? 'Encrypted' : 'Not encrypted';
+        lockIcon.textContent = wasEncrypted ? '🔒' : '🔓';
+
         bubble.appendChild(username);
         bubble.appendChild(text);
         bubble.appendChild(time);
+        bubble.appendChild(lockIcon);
         messageDiv.appendChild(bubble);
 
         messagesList.appendChild(messageDiv);
