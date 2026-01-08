@@ -12,7 +12,8 @@ let gameCtx = null;
 let gameState = {
     players: {},
     gridSize: 10,
-    gameRunning: false
+    gameRunning: false,
+    lobbyCountdown: 0
 };
 let localPlayer = {
     id: null,
@@ -21,11 +22,20 @@ let localPlayer = {
     vx: 1,
     vy: 0,
     trail: [],
-    color: '#00FF00',
-    alive: true
+    color: '#FF1493',
+    alive: true,
+    ready: false,
+    cornerIndex: -1
 };
 let gameLoopInterval = null;
+let countdownInterval = null;
 const GAME_SPEED = 100; // milliseconds
+const CORNERS = [
+    { x: 1, y: 1, color: '#FF1493' },      // Top-left: Hot Pink
+    { x: 78, y: 1, color: '#00FFFF' },     // Top-right: Cyan
+    { x: 1, y: 58, color: '#FFD700' },     // Bottom-left: Gold
+    { x: 78, y: 58, color: '#00FF00' }     // Bottom-right: Lime
+];
 
 // Initialize Socket.IO connection
 function initSocket() {
@@ -70,19 +80,57 @@ function initSocket() {
 
     socket.on('game_state_update', (data) => {
         gameState.players = data.players;
-        document.getElementById('gamePlayers').textContent = Object.keys(gameState.players).length;
+        
+        // Update local player's corner index if not yet assigned
+        if (localPlayer.cornerIndex === -1 && data.players[socket.id]) {
+            localPlayer.cornerIndex = data.players[socket.id].cornerIndex;
+        }
+        
+        updateGameUI();
+        if (gameState.gameRunning) {
+            drawGameBoard();
+        }
+    });
+
+    socket.on('game_countdown', (data) => {
+        const countdown = data.countdown;
+        document.getElementById('gameStatus').textContent = `Starting in ${countdown}...`;
+        
+        if (countdown === 0) {
+            startGame();
+        }
     });
 
     socket.on('game_started', (data) => {
         gameState.gameRunning = true;
         gameState.players = data.players;
+        
+        // Get corner assignment
+        if (data.players[socket.id]) {
+            localPlayer.cornerIndex = data.players[socket.id].cornerIndex;
+        }
+        
+        startGame();
     });
 
     socket.on('game_ended', (data) => {
         gameState.gameRunning = false;
-        document.getElementById('gameStatus').textContent = `${data.winner} wins!`;
+        document.getElementById('gameStatus').textContent = `🏆 ${data.winner} wins!`;
         clearInterval(gameLoopInterval);
-        document.getElementById('gameStartBtn').disabled = false;
+        
+        setTimeout(() => {
+            // Reset for next game
+            localPlayer.ready = false;
+            document.getElementById('gameStartBtn').textContent = 'Ready';
+            document.getElementById('gameStartBtn').style.display = 'block';
+            document.getElementById('gameStartBtn').disabled = false;
+            document.getElementById('gameStatus').textContent = 'Waiting...';
+        }, 3000);
+    });
+
+    socket.on('game_player_joined', (data) => {
+        gameState.players = data.players;
+        updateGameUI();
     });
 }
 
@@ -299,18 +347,17 @@ function initializeGame() {
     gameCanvas = document.getElementById('gameCanvas');
     gameCtx = gameCanvas.getContext('2d');
     
-    // Generate random spawn position and color for this player
     localPlayer.id = socket.id;
-    localPlayer.x = Math.floor(Math.random() * 70) + 5;
-    localPlayer.y = Math.floor(Math.random() * 50) + 5;
-    localPlayer.vx = 1;
-    localPlayer.vy = 0;
-    localPlayer.trail = [];
+    localPlayer.ready = false;
     localPlayer.alive = true;
+    localPlayer.trail = [];
     
-    // Random color for this player
-    const colors = ['#FF0080', '#00FFFF', '#FFFF00', '#00FF00', '#FF00FF', '#FFA500'];
-    localPlayer.color = colors[Math.floor(Math.random() * colors.length)];
+    // Request to join game
+    socket.emit('game_join', {
+        roomId: currentRoomId,
+        username: currentUsername,
+        playerId: socket.id
+    });
     
     // Draw initial game board
     drawGameBoard();
@@ -320,10 +367,13 @@ function initializeGame() {
     document.addEventListener('keyup', handleGameKeyUp);
     
     gameActive = true;
+    
+    // Show ready button
+    updateGameUI();
 }
 
 function handleGameKeyDown(e) {
-    if (!gameActive || !gameState.gameRunning) return;
+    if (!gameActive || !gameState.gameRunning || !localPlayer.alive) return;
     
     if (e.key === 'Escape') {
         toggleMinigameModal();
@@ -331,24 +381,39 @@ function handleGameKeyDown(e) {
     }
     
     const key = e.key.toLowerCase();
+    let newVx = localPlayer.vx;
+    let newVy = localPlayer.vy;
     
     // Prevent reversing into yourself
     if (key === 'arrowup' && localPlayer.vy !== 1) {
-        localPlayer.vx = 0;
-        localPlayer.vy = -1;
+        newVx = 0;
+        newVy = -1;
         e.preventDefault();
     } else if (key === 'arrowdown' && localPlayer.vy !== -1) {
-        localPlayer.vx = 0;
-        localPlayer.vy = 1;
+        newVx = 0;
+        newVy = 1;
         e.preventDefault();
     } else if (key === 'arrowleft' && localPlayer.vx !== 1) {
-        localPlayer.vx = -1;
-        localPlayer.vy = 0;
+        newVx = -1;
+        newVy = 0;
         e.preventDefault();
     } else if (key === 'arrowright' && localPlayer.vx !== -1) {
-        localPlayer.vx = 1;
-        localPlayer.vy = 0;
+        newVx = 1;
+        newVy = 0;
         e.preventDefault();
+    }
+    
+    if (newVx !== localPlayer.vx || newVy !== localPlayer.vy) {
+        localPlayer.vx = newVx;
+        localPlayer.vy = newVy;
+        
+        // Send input to server immediately for low latency
+        socket.emit('game_input', {
+            roomId: currentRoomId,
+            playerId: socket.id,
+            vx: localPlayer.vx,
+            vy: localPlayer.vy
+        });
     }
 }
 
@@ -356,33 +421,34 @@ function handleGameKeyUp(e) {
     // Reserved for potential usage
 }
 
-function startGame() {
-    if (gameState.gameRunning) {
-        alert('Game already in progress!');
-        return;
-    }
-    
-    // Reset local player
-    localPlayer.trail = [];
-    localPlayer.alive = true;
-    localPlayer.x = Math.floor(Math.random() * 70) + 5;
-    localPlayer.y = Math.floor(Math.random() * 50) + 5;
-    
-    // Notify server
-    socket.emit('game_start', {
+function readyGame() {
+    localPlayer.ready = true;
+    socket.emit('game_ready', {
         roomId: currentRoomId,
-        player: {
-            id: socket.id,
-            username: currentUsername,
-            x: localPlayer.x,
-            y: localPlayer.y,
-            color: localPlayer.color
-        }
+        playerId: socket.id,
+        username: currentUsername
     });
     
-    gameState.gameRunning = true;
-    document.getElementById('gameStatus').textContent = 'In Progress...';
     document.getElementById('gameStartBtn').disabled = true;
+    document.getElementById('gameStartBtn').textContent = 'Ready ✓';
+}
+
+function startGame() {
+    // This is now called by the server when 2+ players are ready
+    gameState.gameRunning = true;
+    localPlayer.trail = [];
+    localPlayer.alive = true;
+    
+    // Get assigned corner
+    const corner = CORNERS[localPlayer.cornerIndex];
+    if (corner) {
+        localPlayer.x = corner.x;
+        localPlayer.y = corner.y;
+        localPlayer.color = corner.color;
+    }
+    
+    document.getElementById('gameStatus').textContent = 'In Progress!';
+    document.getElementById('gameStartBtn').style.display = 'none';
     
     // Start game loop
     gameLoopInterval = setInterval(updateGame, GAME_SPEED);
@@ -415,8 +481,6 @@ function updateGame() {
         });
         
         document.getElementById('gameStatus').textContent = 'You crashed!';
-        gameState.gameRunning = false;
-        clearInterval(gameLoopInterval);
     } else {
         // Send position to server
         socket.emit('game_move', {
@@ -457,7 +521,7 @@ function checkCollision() {
         const player = gameState.players[playerId];
         if (playerId === socket.id) continue; // Skip self
         
-        for (let point of player.trail) {
+        for (let point of player.trail || []) {
             if (point.x === localPlayer.x && point.y === localPlayer.y) {
                 return true;
             }
@@ -495,68 +559,65 @@ function drawGameBoard() {
     // Draw other players
     for (let playerId in gameState.players) {
         const player = gameState.players[playerId];
-        if (playerId === socket.id) continue; // Skip local player
+        if (playerId === socket.id) continue; // Skip local player for now
         
-        // Draw trail
-        gameCtx.strokeStyle = player.color;
-        gameCtx.lineWidth = gridSize;
-        gameCtx.lineCap = 'square';
-        
-        if (player.trail.length > 0) {
-            gameCtx.beginPath();
-            gameCtx.moveTo(player.trail[0].x * gridSize + gridSize/2, 
-                           player.trail[0].y * gridSize + gridSize/2);
-            
-            for (let i = 1; i < player.trail.length; i++) {
-                gameCtx.lineTo(player.trail[i].x * gridSize + gridSize/2, 
-                              player.trail[i].y * gridSize + gridSize/2);
-            }
-            gameCtx.stroke();
-        }
-        
-        // Draw bike head
-        if (player.trail.length > 0) {
-            const head = player.trail[player.trail.length - 1];
-            gameCtx.fillStyle = player.color;
-            gameCtx.globalAlpha = 0.8;
-            gameCtx.fillRect(head.x * gridSize + 1, head.y * gridSize + 1, 
-                           gridSize - 2, gridSize - 2);
-            gameCtx.globalAlpha = 1;
-        }
+        drawPlayerTrail(player);
     }
     
     // Draw local player trail
-    gameCtx.strokeStyle = localPlayer.color;
+    drawPlayerTrail(localPlayer);
+}
+
+function drawPlayerTrail(player) {
+    const gridSize = gameState.gridSize;
+    
+    // Draw trail
+    gameCtx.strokeStyle = player.color;
     gameCtx.lineWidth = gridSize;
     gameCtx.lineCap = 'square';
     
-    if (localPlayer.trail.length > 0) {
+    if (player.trail && player.trail.length > 0) {
         gameCtx.beginPath();
-        gameCtx.moveTo(localPlayer.trail[0].x * gridSize + gridSize/2, 
-                       localPlayer.trail[0].y * gridSize + gridSize/2);
+        gameCtx.moveTo(player.trail[0].x * gridSize + gridSize/2, 
+                       player.trail[0].y * gridSize + gridSize/2);
         
-        for (let i = 1; i < localPlayer.trail.length; i++) {
-            gameCtx.lineTo(localPlayer.trail[i].x * gridSize + gridSize/2, 
-                          localPlayer.trail[i].y * gridSize + gridSize/2);
+        for (let i = 1; i < player.trail.length; i++) {
+            gameCtx.lineTo(player.trail[i].x * gridSize + gridSize/2, 
+                          player.trail[i].y * gridSize + gridSize/2);
         }
         gameCtx.stroke();
     }
     
-    // Draw local player bike head (glow effect if alive)
-    gameCtx.fillStyle = localPlayer.color;
-    if (localPlayer.alive) {
-        // Glow effect
-        gameCtx.shadowColor = localPlayer.color;
-        gameCtx.shadowBlur = 15;
-        gameCtx.globalAlpha = 0.9;
-    } else {
-        gameCtx.globalAlpha = 0.5;
+    // Draw bike head
+    if (player.trail && player.trail.length > 0) {
+        const head = player.trail[player.trail.length - 1];
+        gameCtx.fillStyle = player.color;
+        
+        // Glow effect for local player
+        if (player === localPlayer && player.alive) {
+            gameCtx.shadowColor = player.color;
+            gameCtx.shadowBlur = 15;
+            gameCtx.globalAlpha = 0.9;
+        } else {
+            gameCtx.globalAlpha = player.alive ? 0.8 : 0.4;
+        }
+        
+        gameCtx.fillRect(head.x * gridSize + 1, head.y * gridSize + 1, 
+                       gridSize - 2, gridSize - 2);
+        gameCtx.globalAlpha = 1;
+        gameCtx.shadowBlur = 0;
     }
+}
+
+function updateGameUI() {
+    const playerCount = Object.keys(gameState.players).length;
+    document.getElementById('gamePlayers').textContent = playerCount;
     
-    gameCtx.fillRect(localPlayer.x * gridSize + 1, localPlayer.y * gridSize + 1, 
-                     gridSize - 2, gridSize - 2);
-    gameCtx.globalAlpha = 1;
-    gameCtx.shadowBlur = 0;
+    const btn = document.getElementById('gameStartBtn');
+    if (!localPlayer.ready) {
+        btn.textContent = playerCount >= 2 ? 'Ready (2+ players)' : `Ready (need ${2 - playerCount} more)`;
+        btn.disabled = false;
+    }
 }
 
 function stopGame() {
@@ -565,18 +626,26 @@ function stopGame() {
         gameLoopInterval = null;
     }
     
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    
     gameActive = false;
     gameState.gameRunning = false;
+    localPlayer.ready = false;
     
     document.removeEventListener('keydown', handleGameKeyDown);
     document.removeEventListener('keyup', handleGameKeyUp);
     
-    socket.emit('game_stop', {
+    socket.emit('game_leave', {
         roomId: currentRoomId,
         playerId: socket.id
     });
     
     document.getElementById('gameStatus').textContent = 'Waiting...';
+    document.getElementById('gameStartBtn').textContent = 'Ready';
+    document.getElementById('gameStartBtn').style.display = 'block';
     document.getElementById('gameStartBtn').disabled = false;
 }
 

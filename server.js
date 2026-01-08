@@ -230,38 +230,125 @@ io.on('connection', (socket) => {
 
   // Store active room game states
   const gameRooms = new Map();
+  const gameCountdowns = new Map();
 
   function getGameRoom(roomId) {
     if (!gameRooms.has(roomId)) {
       gameRooms.set(roomId, {
         players: {},
         gameRunning: false,
-        startTime: null
+        ready: {},
+        nextCorner: 0
       });
     }
     return gameRooms.get(roomId);
   }
 
-  socket.on('game_start', (data) => {
+  function getAvailableCorner(gameRoom) {
+    if (gameRoom.nextCorner >= 4) return -1; // Max 4 players
+    const corner = gameRoom.nextCorner;
+    gameRoom.nextCorner++;
+    return corner;
+  }
+
+  socket.on('game_join', (data) => {
     const gameRoom = getGameRoom(data.roomId);
     
-    // Initialize player
-    gameRoom.players[data.player.id] = {
-      id: data.player.id,
-      username: data.player.username,
-      x: data.player.x,
-      y: data.player.y,
-      color: data.player.color,
+    // Assign corner if available
+    const cornerIndex = getAvailableCorner(gameRoom);
+    if (cornerIndex === -1) {
+      socket.emit('game_error', { message: 'Game is full (max 4 players)' });
+      return;
+    }
+    
+    // Add player
+    gameRoom.players[data.playerId] = {
+      id: data.playerId,
+      username: data.username,
+      cornerIndex: cornerIndex,
+      ready: false,
       trail: [],
       alive: true,
+      x: 0,
+      y: 0,
       vx: 1,
-      vy: 0
+      vy: 0,
+      color: ''
     };
-
-    // Notify all clients in room
-    io.to(data.roomId).emit('game_state_update', {
+    
+    gameRoom.ready[data.playerId] = false;
+    
+    // Notify all players
+    io.to(data.roomId).emit('game_player_joined', {
       players: gameRoom.players
     });
+  });
+
+  socket.on('game_ready', (data) => {
+    const gameRoom = getGameRoom(data.roomId);
+    gameRoom.ready[data.playerId] = true;
+    
+    const readyCount = Object.values(gameRoom.ready).filter(r => r).length;
+    const playerCount = Object.keys(gameRoom.players).length;
+    
+    console.log(`Player ${data.username} ready. Ready: ${readyCount}/${playerCount}`);
+    
+    // Start countdown if 2+ players ready and game not running
+    if (readyCount >= 2 && playerCount >= 2 && !gameRoom.gameRunning && !gameCountdowns.has(data.roomId)) {
+      startGameCountdown(data.roomId, gameRoom, io);
+    }
+  });
+
+  function startGameCountdown(roomId, gameRoom, io) {
+    let countdown = 3;
+    gameCountdowns.set(roomId, true);
+    gameRoom.gameRunning = true;
+    
+    const countdownInterval = setInterval(() => {
+      io.to(roomId).emit('game_countdown', { countdown: countdown });
+      
+      if (countdown === 0) {
+        clearInterval(countdownInterval);
+        gameCountdowns.delete(roomId);
+        
+        // Reset ready states and start game
+        Object.keys(gameRoom.ready).forEach(id => {
+          gameRoom.ready[id] = false;
+        });
+        
+        // Initialize positions in corners
+        for (let playerId in gameRoom.players) {
+          const player = gameRoom.players[playerId];
+          const corners = [
+            { x: 1, y: 1 },
+            { x: 78, y: 1 },
+            { x: 1, y: 58 },
+            { x: 78, y: 58 }
+          ];
+          
+          if (player.cornerIndex >= 0 && player.cornerIndex < corners.length) {
+            const corner = corners[player.cornerIndex];
+            player.x = corner.x;
+            player.y = corner.y;
+            player.trail = [{ x: corner.x, y: corner.y }];
+          }
+        }
+        
+        io.to(roomId).emit('game_started', {
+          players: gameRoom.players
+        });
+      }
+      
+      countdown--;
+    }, 1000);
+  }
+
+  socket.on('game_input', (data) => {
+    const gameRoom = getGameRoom(data.roomId);
+    if (gameRoom.players[data.playerId]) {
+      gameRoom.players[data.playerId].vx = data.vx;
+      gameRoom.players[data.playerId].vy = data.vy;
+    }
   });
 
   socket.on('game_move', (data) => {
@@ -283,25 +370,29 @@ io.on('connection', (socket) => {
 
     // Check if only one player left alive
     const aliveCount = Object.values(gameRoom.players).filter(p => p.alive).length;
-    if (aliveCount === 1 && Object.values(gameRoom.players).length > 1) {
+    if (aliveCount <= 1 && Object.values(gameRoom.players).length > 1) {
       const winner = Object.values(gameRoom.players).find(p => p.alive);
       gameRoom.gameRunning = false;
+      gameRoom.nextCorner = 0; // Reset corner assignment
+      
       io.to(data.roomId).emit('game_ended', {
-        winner: winner.username,
-        winnerId: winner.id
+        winner: winner ? winner.username : 'Nobody',
+        winnerId: winner ? winner.id : null
       });
     }
   });
 
-  socket.on('game_stop', (data) => {
+  socket.on('game_leave', (data) => {
     const gameRoom = getGameRoom(data.roomId);
     
     if (gameRoom.players[data.playerId]) {
       delete gameRoom.players[data.playerId];
+      delete gameRoom.ready[data.playerId];
     }
 
     if (Object.keys(gameRoom.players).length === 0) {
       gameRooms.delete(data.roomId);
+      gameCountdowns.delete(data.roomId);
     } else {
       io.to(data.roomId).emit('game_state_update', {
         players: gameRoom.players
