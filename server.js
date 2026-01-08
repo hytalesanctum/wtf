@@ -334,16 +334,18 @@ io.on('connection', (socket) => {
         for (let playerId in gameRoom.players) {
           const player = gameRoom.players[playerId];
           const corners = [
-            { x: 1, y: 1 },
-            { x: 78, y: 1 },
-            { x: 1, y: 58 },
-            { x: 78, y: 58 }
+            { x: 1, y: 1, vx: 1, vy: 0 },      // Top-left: move right
+            { x: 78, y: 1, vx: -1, vy: 0 },    // Top-right: move left
+            { x: 1, y: 58, vx: 1, vy: 0 },     // Bottom-left: move right
+            { x: 78, y: 58, vx: -1, vy: 0 }    // Bottom-right: move left
           ];
           
           if (player.cornerIndex >= 0 && player.cornerIndex < corners.length) {
             const corner = corners[player.cornerIndex];
             player.x = corner.x;
             player.y = corner.y;
+            player.vx = corner.vx;
+            player.vy = corner.vy;
             player.trail = [{ x: corner.x, y: corner.y }];
           }
         }

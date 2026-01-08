@@ -31,10 +31,10 @@ let gameLoopInterval = null;
 let countdownInterval = null;
 const GAME_SPEED = 100; // milliseconds
 const CORNERS = [
-    { x: 1, y: 1, color: '#FF1493' },      // Top-left: Hot Pink
-    { x: 78, y: 1, color: '#00FFFF' },     // Top-right: Cyan
-    { x: 1, y: 58, color: '#FFD700' },     // Bottom-left: Gold
-    { x: 78, y: 58, color: '#00FF00' }     // Bottom-right: Lime
+    { x: 1, y: 1, vx: 1, vy: 0, color: '#FF1493' },      // Top-left: Hot Pink, move right
+    { x: 78, y: 1, vx: -1, vy: 0, color: '#00FFFF' },    // Top-right: Cyan, move left
+    { x: 1, y: 58, vx: 1, vy: 0, color: '#FFD700' },     // Bottom-left: Gold, move right
+    { x: 78, y: 58, vx: -1, vy: 0, color: '#00FF00' }    // Bottom-right: Lime, move left
 ];
 
 // Initialize Socket.IO connection
@@ -466,6 +466,8 @@ function startGame() {
     if (corner) {
         localPlayer.x = corner.x;
         localPlayer.y = corner.y;
+        localPlayer.vx = corner.vx;
+        localPlayer.vy = corner.vy;
         localPlayer.color = corner.color;
     }
     
