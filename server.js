@@ -225,6 +225,89 @@ io.on('connection', (socket) => {
       socket.emit('message_history', room.messages);
     }
   });
+
+  // ===== TRON GAME SOCKET EVENTS =====
+
+  // Store active room game states
+  const gameRooms = new Map();
+
+  function getGameRoom(roomId) {
+    if (!gameRooms.has(roomId)) {
+      gameRooms.set(roomId, {
+        players: {},
+        gameRunning: false,
+        startTime: null
+      });
+    }
+    return gameRooms.get(roomId);
+  }
+
+  socket.on('game_start', (data) => {
+    const gameRoom = getGameRoom(data.roomId);
+    
+    // Initialize player
+    gameRoom.players[data.player.id] = {
+      id: data.player.id,
+      username: data.player.username,
+      x: data.player.x,
+      y: data.player.y,
+      color: data.player.color,
+      trail: [],
+      alive: true,
+      vx: 1,
+      vy: 0
+    };
+
+    // Notify all clients in room
+    io.to(data.roomId).emit('game_state_update', {
+      players: gameRoom.players
+    });
+  });
+
+  socket.on('game_move', (data) => {
+    const gameRoom = getGameRoom(data.roomId);
+    
+    if (gameRoom.players[data.playerId]) {
+      gameRoom.players[data.playerId].x = data.x;
+      gameRoom.players[data.playerId].y = data.y;
+      gameRoom.players[data.playerId].vx = data.vx;
+      gameRoom.players[data.playerId].vy = data.vy;
+      gameRoom.players[data.playerId].trail = data.trail;
+      gameRoom.players[data.playerId].alive = data.alive;
+    }
+
+    // Broadcast to all players in room
+    io.to(data.roomId).emit('game_state_update', {
+      players: gameRoom.players
+    });
+
+    // Check if only one player left alive
+    const aliveCount = Object.values(gameRoom.players).filter(p => p.alive).length;
+    if (aliveCount === 1 && Object.values(gameRoom.players).length > 1) {
+      const winner = Object.values(gameRoom.players).find(p => p.alive);
+      gameRoom.gameRunning = false;
+      io.to(data.roomId).emit('game_ended', {
+        winner: winner.username,
+        winnerId: winner.id
+      });
+    }
+  });
+
+  socket.on('game_stop', (data) => {
+    const gameRoom = getGameRoom(data.roomId);
+    
+    if (gameRoom.players[data.playerId]) {
+      delete gameRoom.players[data.playerId];
+    }
+
+    if (Object.keys(gameRoom.players).length === 0) {
+      gameRooms.delete(data.roomId);
+    } else {
+      io.to(data.roomId).emit('game_state_update', {
+        players: gameRoom.players
+      });
+    }
+  });
 });
 
 const PORT = process.env.PORT || 3000;

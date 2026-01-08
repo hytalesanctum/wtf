@@ -5,6 +5,28 @@ let currentRoomId = '';
 let messageLog = [];
 let darkModeEnabled = localStorage.getItem('darkMode') === 'true';
 
+// Tron Game Variables
+let gameActive = false;
+let gameCanvas = null;
+let gameCtx = null;
+let gameState = {
+    players: {},
+    gridSize: 10,
+    gameRunning: false
+};
+let localPlayer = {
+    id: null,
+    x: 40,
+    y: 30,
+    vx: 1,
+    vy: 0,
+    trail: [],
+    color: '#00FF00',
+    alive: true
+};
+let gameLoopInterval = null;
+const GAME_SPEED = 100; // milliseconds
+
 // Initialize Socket.IO connection
 function initSocket() {
     socket = io('https://wtf-production-bf2a.up.railway.app');
@@ -44,6 +66,23 @@ function initSocket() {
     socket.on('access_denied', (data) => {
         alert(data.message);
         window.location.href = '/';
+    });
+
+    socket.on('game_state_update', (data) => {
+        gameState.players = data.players;
+        document.getElementById('gamePlayers').textContent = Object.keys(gameState.players).length;
+    });
+
+    socket.on('game_started', (data) => {
+        gameState.gameRunning = true;
+        gameState.players = data.players;
+    });
+
+    socket.on('game_ended', (data) => {
+        gameState.gameRunning = false;
+        document.getElementById('gameStatus').textContent = `${data.winner} wins!`;
+        clearInterval(gameLoopInterval);
+        document.getElementById('gameStartBtn').disabled = false;
     });
 }
 
@@ -237,6 +276,308 @@ function toggleWikipediaModal() {
 // Load Wikipedia content via API
 async function loadWikipediaContent() {
     // Content is already in HTML, no need to load
+}
+
+// ===== TRON GAME FUNCTIONS =====
+
+function toggleMinigameModal() {
+    const modal = document.getElementById('gameModal');
+    modal.classList.toggle('hidden');
+    
+    if (!modal.classList.contains('hidden')) {
+        setTimeout(() => {
+            if (!gameCanvas) {
+                initializeGame();
+            }
+        }, 50);
+    } else {
+        stopGame();
+    }
+}
+
+function initializeGame() {
+    gameCanvas = document.getElementById('gameCanvas');
+    gameCtx = gameCanvas.getContext('2d');
+    
+    // Generate random spawn position and color for this player
+    localPlayer.id = socket.id;
+    localPlayer.x = Math.floor(Math.random() * 70) + 5;
+    localPlayer.y = Math.floor(Math.random() * 50) + 5;
+    localPlayer.vx = 1;
+    localPlayer.vy = 0;
+    localPlayer.trail = [];
+    localPlayer.alive = true;
+    
+    // Random color for this player
+    const colors = ['#FF0080', '#00FFFF', '#FFFF00', '#00FF00', '#FF00FF', '#FFA500'];
+    localPlayer.color = colors[Math.floor(Math.random() * colors.length)];
+    
+    // Draw initial game board
+    drawGameBoard();
+    
+    // Add keyboard controls
+    document.addEventListener('keydown', handleGameKeyDown);
+    document.addEventListener('keyup', handleGameKeyUp);
+    
+    gameActive = true;
+}
+
+function handleGameKeyDown(e) {
+    if (!gameActive || !gameState.gameRunning) return;
+    
+    if (e.key === 'Escape') {
+        toggleMinigameModal();
+        return;
+    }
+    
+    const key = e.key.toLowerCase();
+    
+    // Prevent reversing into yourself
+    if (key === 'arrowup' && localPlayer.vy !== 1) {
+        localPlayer.vx = 0;
+        localPlayer.vy = -1;
+        e.preventDefault();
+    } else if (key === 'arrowdown' && localPlayer.vy !== -1) {
+        localPlayer.vx = 0;
+        localPlayer.vy = 1;
+        e.preventDefault();
+    } else if (key === 'arrowleft' && localPlayer.vx !== 1) {
+        localPlayer.vx = -1;
+        localPlayer.vy = 0;
+        e.preventDefault();
+    } else if (key === 'arrowright' && localPlayer.vx !== -1) {
+        localPlayer.vx = 1;
+        localPlayer.vy = 0;
+        e.preventDefault();
+    }
+}
+
+function handleGameKeyUp(e) {
+    // Reserved for potential usage
+}
+
+function startGame() {
+    if (gameState.gameRunning) {
+        alert('Game already in progress!');
+        return;
+    }
+    
+    // Reset local player
+    localPlayer.trail = [];
+    localPlayer.alive = true;
+    localPlayer.x = Math.floor(Math.random() * 70) + 5;
+    localPlayer.y = Math.floor(Math.random() * 50) + 5;
+    
+    // Notify server
+    socket.emit('game_start', {
+        roomId: currentRoomId,
+        player: {
+            id: socket.id,
+            username: currentUsername,
+            x: localPlayer.x,
+            y: localPlayer.y,
+            color: localPlayer.color
+        }
+    });
+    
+    gameState.gameRunning = true;
+    document.getElementById('gameStatus').textContent = 'In Progress...';
+    document.getElementById('gameStartBtn').disabled = true;
+    
+    // Start game loop
+    gameLoopInterval = setInterval(updateGame, GAME_SPEED);
+}
+
+function updateGame() {
+    if (!gameState.gameRunning || !localPlayer.alive) {
+        return;
+    }
+    
+    // Update local player position
+    localPlayer.x += localPlayer.vx;
+    localPlayer.y += localPlayer.vy;
+    
+    // Add current position to trail
+    localPlayer.trail.push({x: localPlayer.x, y: localPlayer.y});
+    
+    // Check collisions
+    if (checkCollision()) {
+        localPlayer.alive = false;
+        socket.emit('game_move', {
+            roomId: currentRoomId,
+            playerId: socket.id,
+            x: localPlayer.x,
+            y: localPlayer.y,
+            vx: localPlayer.vx,
+            vy: localPlayer.vy,
+            trail: localPlayer.trail,
+            alive: false
+        });
+        
+        document.getElementById('gameStatus').textContent = 'You crashed!';
+        gameState.gameRunning = false;
+        clearInterval(gameLoopInterval);
+    } else {
+        // Send position to server
+        socket.emit('game_move', {
+            roomId: currentRoomId,
+            playerId: socket.id,
+            x: localPlayer.x,
+            y: localPlayer.y,
+            vx: localPlayer.vx,
+            vy: localPlayer.vy,
+            trail: localPlayer.trail,
+            alive: true
+        });
+    }
+    
+    // Redraw game
+    drawGameBoard();
+}
+
+function checkCollision() {
+    const maxX = gameCanvas.width / gameState.gridSize;
+    const maxY = gameCanvas.height / gameState.gridSize;
+    
+    // Check boundaries
+    if (localPlayer.x < 0 || localPlayer.x >= maxX || 
+        localPlayer.y < 0 || localPlayer.y >= maxY) {
+        return true;
+    }
+    
+    // Check collision with own trail
+    for (let point of localPlayer.trail.slice(0, -5)) {
+        if (point.x === localPlayer.x && point.y === localPlayer.y) {
+            return true;
+        }
+    }
+    
+    // Check collision with other players' trails
+    for (let playerId in gameState.players) {
+        const player = gameState.players[playerId];
+        if (playerId === socket.id) continue; // Skip self
+        
+        for (let point of player.trail) {
+            if (point.x === localPlayer.x && point.y === localPlayer.y) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+function drawGameBoard() {
+    const gridSize = gameState.gridSize;
+    
+    // Clear canvas with dark background
+    gameCtx.fillStyle = '#000011';
+    gameCtx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+    
+    // Draw grid
+    gameCtx.strokeStyle = '#1a1a2e';
+    gameCtx.lineWidth = 0.5;
+    
+    for (let x = 0; x <= gameCanvas.width; x += gridSize) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(x, 0);
+        gameCtx.lineTo(x, gameCanvas.height);
+        gameCtx.stroke();
+    }
+    
+    for (let y = 0; y <= gameCanvas.height; y += gridSize) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(0, y);
+        gameCtx.lineTo(gameCanvas.width, y);
+        gameCtx.stroke();
+    }
+    
+    // Draw other players
+    for (let playerId in gameState.players) {
+        const player = gameState.players[playerId];
+        if (playerId === socket.id) continue; // Skip local player
+        
+        // Draw trail
+        gameCtx.strokeStyle = player.color;
+        gameCtx.lineWidth = gridSize;
+        gameCtx.lineCap = 'square';
+        
+        if (player.trail.length > 0) {
+            gameCtx.beginPath();
+            gameCtx.moveTo(player.trail[0].x * gridSize + gridSize/2, 
+                           player.trail[0].y * gridSize + gridSize/2);
+            
+            for (let i = 1; i < player.trail.length; i++) {
+                gameCtx.lineTo(player.trail[i].x * gridSize + gridSize/2, 
+                              player.trail[i].y * gridSize + gridSize/2);
+            }
+            gameCtx.stroke();
+        }
+        
+        // Draw bike head
+        if (player.trail.length > 0) {
+            const head = player.trail[player.trail.length - 1];
+            gameCtx.fillStyle = player.color;
+            gameCtx.globalAlpha = 0.8;
+            gameCtx.fillRect(head.x * gridSize + 1, head.y * gridSize + 1, 
+                           gridSize - 2, gridSize - 2);
+            gameCtx.globalAlpha = 1;
+        }
+    }
+    
+    // Draw local player trail
+    gameCtx.strokeStyle = localPlayer.color;
+    gameCtx.lineWidth = gridSize;
+    gameCtx.lineCap = 'square';
+    
+    if (localPlayer.trail.length > 0) {
+        gameCtx.beginPath();
+        gameCtx.moveTo(localPlayer.trail[0].x * gridSize + gridSize/2, 
+                       localPlayer.trail[0].y * gridSize + gridSize/2);
+        
+        for (let i = 1; i < localPlayer.trail.length; i++) {
+            gameCtx.lineTo(localPlayer.trail[i].x * gridSize + gridSize/2, 
+                          localPlayer.trail[i].y * gridSize + gridSize/2);
+        }
+        gameCtx.stroke();
+    }
+    
+    // Draw local player bike head (glow effect if alive)
+    gameCtx.fillStyle = localPlayer.color;
+    if (localPlayer.alive) {
+        // Glow effect
+        gameCtx.shadowColor = localPlayer.color;
+        gameCtx.shadowBlur = 15;
+        gameCtx.globalAlpha = 0.9;
+    } else {
+        gameCtx.globalAlpha = 0.5;
+    }
+    
+    gameCtx.fillRect(localPlayer.x * gridSize + 1, localPlayer.y * gridSize + 1, 
+                     gridSize - 2, gridSize - 2);
+    gameCtx.globalAlpha = 1;
+    gameCtx.shadowBlur = 0;
+}
+
+function stopGame() {
+    if (gameLoopInterval) {
+        clearInterval(gameLoopInterval);
+        gameLoopInterval = null;
+    }
+    
+    gameActive = false;
+    gameState.gameRunning = false;
+    
+    document.removeEventListener('keydown', handleGameKeyDown);
+    document.removeEventListener('keyup', handleGameKeyUp);
+    
+    socket.emit('game_stop', {
+        roomId: currentRoomId,
+        playerId: socket.id
+    });
+    
+    document.getElementById('gameStatus').textContent = 'Waiting...';
+    document.getElementById('gameStartBtn').disabled = false;
 }
 
 // Check if user already has a username in session

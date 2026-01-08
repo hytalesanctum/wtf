@@ -53,6 +53,7 @@
             </div>
             <div class="header-buttons">
                 <button id="darkModeBtn" class="header-btn dark-mode-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
+                <button id="minigameBtn" class="header-btn minigame-btn" onclick="toggleMinigameModal()" title="Tron Bike Game">🎮</button>
                 <button id="clearBtn" class="header-btn clear-btn" onclick="clearChatHistory()" title="Clear Chat History">🗑️</button>
                 <button id="leaveBtn" class="leave-btn" onclick="leaveChat()">Leave</button>
             </div>
@@ -78,6 +79,27 @@
                     rows="1"
                 ></textarea>
                 <button id="sendBtn" onclick="sendMessage()" class="send-btn">Send</button>
+            </div>
+        </div>
+
+        <!-- Tron Game Modal -->
+        <div id="gameModal" class="game-modal hidden">
+            <div class="game-container">
+                <div class="game-header">
+                    <h2>⚡ TRON BIKE RACE ⚡</h2>
+                    <button class="game-close-btn" onclick="toggleMinigameModal()">✕</button>
+                </div>
+                <div class="game-stats">
+                    <div class="stat">Players: <span id="gamePlayers">0</span></div>
+                    <div class="stat">Score: <span id="gameScore">0</span></div>
+                    <div class="stat">Status: <span id="gameStatus">Waiting...</span></div>
+                </div>
+                <canvas id="gameCanvas" width="800" height="600"></canvas>
+                <div class="game-controls">
+                    <p>Use Arrow Keys to move • ESC to exit</p>
+                    <button id="gameStartBtn" onclick="startGame()" class="game-btn">Start Game</button>
+                    <button onclick="toggleMinigameModal()" class="game-btn">Close</button>
+                </div>
             </div>
         </div>
 
