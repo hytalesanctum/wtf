@@ -415,8 +415,8 @@ body.dark-mode .message-bubble {
 }
 
 body.dark-mode .system-message {
-    background: #2d2d44;
-    color: #888;
+    color: #000 !important;
+    background: #000 !important;
 }
 
 .message {
