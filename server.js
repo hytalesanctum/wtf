@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
   if (!ALLOWED_COUNTRIES.includes(country)) {
     console.log(`Access denied for IP ${clientIp} from ${country}`);
     socket.emit('access_denied', {
-      message: `Access denied. This chatroom is only available in Morocco, Austria, Iran, and Iraq.`
+      message: `Access denied.`
     });
     socket.disconnect(true);
     return;
