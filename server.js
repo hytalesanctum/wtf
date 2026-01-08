@@ -169,6 +169,17 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Handle clear messages
+  socket.on('clear_messages', (data) => {
+    const roomId = GLOBAL_ROOM;
+    const room = rooms.get(roomId);
+    if (room) {
+      room.messages = [];
+      saveMessages([]);
+      io.to(roomId).emit('messages_cleared', {});
+    }
+  });
+
   // Handle user disconnect
   socket.on('disconnect', () => {
     const user = users.get(socket.id);

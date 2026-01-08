@@ -20,9 +20,27 @@
                     maxlength="20"
                     autocomplete="off"
                 >
-                <button id="joinBtn" onclick="joinRoom()">Join Chat</button>
             </div>
+            <button id="joinBtn" onclick="joinRoom()">Join Chat</button>
             <p class="info-text">💬 Messages are end-to-end encrypted • No login required • Share the link</p>
+        </div>
+    </div>
+
+    <!-- Clear Chat Password Modal -->
+    <div id="clearPasswordModal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Clear Chat History</h2>
+            <p>Enter password to confirm:</p>
+            <input 
+                type="password" 
+                id="clearPassword" 
+                placeholder="Enter password" 
+                autocomplete="off"
+            >
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="confirmClearChat()" style="flex: 1;">Clear</button>
+                <button onclick="closeClearModal()" style="flex: 1;">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -35,6 +53,7 @@
             </div>
             <div class="header-buttons">
                 <button id="darkModeBtn" class="header-btn dark-mode-btn" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
+                <button id="clearBtn" class="header-btn clear-btn" onclick="clearChatHistory()" title="Clear Chat History">🗑️</button>
                 <button id="leaveBtn" class="leave-btn" onclick="leaveChat()">Leave</button>
             </div>
         </div>
@@ -64,12 +83,141 @@
 
         <!-- Wikipedia Modal -->
         <div id="wikipediaModal" class="wiki-modal hidden">
-            <div class="wiki-modal-header">
-                <h2>Wikipedia - Medicine</h2>
-                <button onclick="toggleWikipediaModal()" class="wiki-close-btn">✕</button>
-            </div>
-            <div id="wikipediaContent" class="wiki-modal-content">
-                <p style="text-align: center; padding: 20px; color: #999;">Loading Wikipedia...</p>
+            <div class="wiki-container">
+                <!-- Header -->
+                <div class="wiki-header">
+                    <div class="wiki-header-left">
+                        <button class="wiki-menu-btn">☰</button>
+                        <div class="wiki-logo">
+                            <span class="wiki-logo-text">WIKIPEDIA</span>
+                            <span class="wiki-subtitle">The Free Encyclopedia</span>
+                        </div>
+                    </div>
+                    <div class="wiki-search">
+                        <input type="text" placeholder="Search Wikipedia" class="wiki-search-box">
+                        <button class="wiki-search-btn">Search</button>
+                    </div>
+                    <div class="wiki-header-right">
+                        <a href="#">Donate</a>
+                        <a href="#">Create account</a>
+                        <a href="#">Log in</a>
+                        <button onclick="toggleWikipediaModal()" class="wiki-close-btn">✕</button>
+                    </div>
+                </div>
+
+                <div class="wiki-content-wrapper">
+                    <!-- Left Sidebar -->
+                    <div class="wiki-sidebar-left">
+                        <div class="wiki-toc-box">
+                            <div class="wiki-toc-header">
+                                <strong>Contents</strong>
+                                <span class="wiki-hide-link">hide</span>
+                            </div>
+                            <ul class="wiki-toc-list">
+                                <li><a href="#top">(Top)</a></li>
+                                <li><span class="expand">▶</span> <a href="#Definition">Definition</a></li>
+                                <li><span class="expand">▶</span> <a href="#History">History</a></li>
+                                <li><a href="#Types">Types of Modelling</a></li>
+                                <li><a href="#Career">Career Requirements</a></li>
+                                <li><a href="#Challenges">Challenges</a></li>
+                                <li><a href="#See_Also">See also</a></li>
+                                <li><a href="#References">References</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Main Content -->
+                    <div class="wiki-main">
+                        <div class="wiki-page-header">
+                            <h1>Clothes Modelling</h1>
+                            <div class="wiki-language-selector">
+                                <a href="#">41 languages</a>
+                            </div>
+                        </div>
+
+                        <div class="wiki-tabs">
+                            <span class="wiki-tab active">Article</span>
+                            <span class="wiki-tab">Talk</span>
+                        </div>
+
+                        <div class="wiki-source-note">
+                            From Wikipedia, the free encyclopedia
+                        </div>
+
+                        <!-- Article Content -->
+                        <div class="wiki-article" id="wikipediaContent">
+                            <p><b>Clothes modelling</b> (also called <b>fashion modelling</b>) is a profession where individuals model clothing and fashion designs created by fashion designers and fashion houses.</p>
+                            
+                            <div class="wiki-image-right">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Fashion_design_sketch.jpg/250px-Fashion_design_sketch.jpg" alt="Fashion model on runway" style="width: 100%; height: auto;">
+                                <div class="wiki-image-caption">Fashion models showcase the latest clothing designs on the runway</div>
+                            </div>
+
+                            <h2>Definition<span class="wiki-edit-link">[edit]</span></h2>
+                            <p>Clothes modelling is the profession of displaying clothing and fashion accessories to the public. Models work for fashion designers, photographers, and marketing agencies to promote and advertise fashion collections. They appear in various media including runway shows, print advertising, television commercials, and digital platforms.</p>
+
+                            <h2>History<span class="wiki-edit-link">[edit]</span></h2>
+                            <p>The fashion modelling industry emerged in the late 19th century with the rise of haute couture. Early fashion models were primarily used for in-store displays and print advertising. The modern modelling industry took shape during the 20th century with the establishment of major modelling agencies.</p>
+                            <p>The supermodel era began in the 1960s with iconic figures such as Twiggy and Jean Shrimpton. These models became cultural icons and influenced fashion trends significantly. Today, fashion modelling is a multi-billion dollar global industry.</p>
+
+                            <h2>Types of Modelling<span class="wiki-edit-link">[edit]</span></h2>
+                            <ul>
+                                <li><b>Runway Modelling</b> – Display of clothing on catwalks during fashion shows</li>
+                                <li><b>Commercial Modelling</b> – Appearance in advertisements and promotional campaigns</li>
+                                <li><b>Editorial Modelling</b> – Feature in fashion magazines and publications</li>
+                                <li><b>Parts Modelling</b> – Focus on specific body parts for advertisements</li>
+                            </ul>
+
+                            <h2>Career Requirements<span class="wiki-edit-link">[edit]</span></h2>
+                            <p>Professional models typically meet specific physical requirements, though standards vary by market and agency:</p>
+                            <ul>
+                                <li>Specific height and body measurements</li>
+                                <li>Clear complexion and good skin health</li>
+                                <li>Professional demeanor and reliability</li>
+                                <li>Portfolio of professional photographs</li>
+                                <li>Ability to follow direction from photographers and stylists</li>
+                            </ul>
+
+                            <h2>Challenges<span class="wiki-edit-link">[edit]</span></h2>
+                            <p>The modelling industry faces numerous criticisms regarding unrealistic beauty standards, mental health issues among models, and exploitative practices. There are ongoing discussions about diversity and inclusion in the fashion industry.</p>
+
+                            <h2>See also<span class="wiki-edit-link">[edit]</span></h2>
+                            <ul>
+                                <li>Fashion design</li>
+                                <li>Fashion photography</li>
+                                <li>Fashion industry</li>
+                                <li>Supermodel</li>
+                            </ul>
+
+                            <h2>References<span class="wiki-edit-link">[edit]</span></h2>
+                            <div class="wiki-references">
+                                <ol>
+                                    <li>Smith, John (2020). "The History of Fashion Modelling". Fashion Publishing.</li>
+                                    <li>Johnson, Mary (2019). "Modern Fashion Industry Standards". Academic Press.</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Sidebar -->
+                    <div class="wiki-sidebar-right">
+                        <div class="wiki-appearance-box">
+                            <div class="wiki-appearance-header">Appearance</div>
+                            <div class="wiki-appearance-option">
+                                <input type="radio" id="text-small" name="text-size">
+                                <label for="text-small">Small</label>
+                            </div>
+                            <div class="wiki-appearance-option">
+                                <input type="radio" id="text-standard" name="text-size" checked>
+                                <label for="text-standard">Standard</label>
+                            </div>
+                            <div class="wiki-appearance-option">
+                                <input type="radio" id="text-large" name="text-size">
+                                <label for="text-large">Large</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

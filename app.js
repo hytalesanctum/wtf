@@ -34,6 +34,10 @@ function initSocket() {
         displayMessageHistory(messages);
     });
 
+    socket.on('messages_cleared', () => {
+        document.getElementById('messagesList').innerHTML = '';
+    });
+
     socket.on('disconnect', () => {
         console.log('Disconnected from server');
     });
@@ -272,86 +276,11 @@ function goToWikipedia() {
 function toggleWikipediaModal() {
     const modal = document.getElementById('wikipediaModal');
     modal.classList.toggle('hidden');
-    
-    if (!modal.classList.contains('hidden')) {
-        loadWikipediaContent();
-    }
 }
 
 // Load Wikipedia content via API
 async function loadWikipediaContent() {
-    const contentDiv = document.getElementById('wikipediaContent');
-    
-    try {
-        // Use Wikipedia's REST API with mobile endpoint
-        const response = await fetch('https://en.wikipedia.org/api/rest_v1/page/mobile/sections/Medicine', {
-            headers: {
-                'Accept': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to fetch');
-        }
-        
-        const data = await response.json();
-        
-        let html = '<h1>Medicine</h1>';
-        
-        if (data.sections) {
-            data.sections.forEach(section => {
-                if (section.text) {
-                    html += `<h2>${section.text}</h2>`;
-                }
-            });
-        }
-        
-        contentDiv.innerHTML = html || getDefaultMedicineContent();
-    } catch (error) {
-        console.error('Error loading Wikipedia:', error);
-        contentDiv.innerHTML = getDefaultMedicineContent();
-    }
-}
-
-// Fallback content if API fails
-function getDefaultMedicineContent() {
-    return `
-        <h1>Medicine</h1>
-        <p><strong>Medicine</strong> is the science and practice of diagnosing, treating, and preventing disease.</p>
-        
-        <h2>Definition</h2>
-        <p>Medicine encompasses a variety of health care practices evolved to maintain and restore health by the prevention and treatment of illness. It is both an area of knowledge—a science of body systems and diseases—and the applied practice of that knowledge.</p>
-        
-        <h2>History</h2>
-        <p>The practice of medicine dates back to prehistoric times, with the oldest known medical texts appearing around 1600 BC. Ancient medical practitioners developed empirical treatments and surgical techniques that were passed down through generations.</p>
-        
-        <h2>Branches of Medicine</h2>
-        <ul>
-            <li><strong>Internal Medicine</strong> - Treatment of adult diseases</li>
-            <li><strong>Pediatrics</strong> - Treatment of children</li>
-            <li><strong>Surgery</strong> - Operative treatment</li>
-            <li><strong>Psychiatry</strong> - Mental health treatment</li>
-            <li><strong>Cardiology</strong> - Heart and circulatory system</li>
-            <li><strong>Oncology</strong> - Cancer treatment</li>
-            <li><strong>Neurology</strong> - Nervous system disorders</li>
-        </ul>
-        
-        <h2>Modern Medicine</h2>
-        <p>Modern medicine relies on various tools and techniques including:</p>
-        <ul>
-            <li>Pharmaceutical drugs</li>
-            <li>Surgical procedures</li>
-            <li>Diagnostic imaging</li>
-            <li>Laboratory testing</li>
-            <li>Psychological therapies</li>
-        </ul>
-        
-        <h2>Medical Ethics</h2>
-        <p>Modern medical practice is guided by ethical principles including autonomy, beneficence, non-maleficence, and justice. Healthcare providers must maintain confidentiality and obtain informed consent from patients.</p>
-        
-        <h2>Future of Medicine</h2>
-        <p>Emerging fields in medicine include personalized medicine, regenerative medicine, and digital health technologies that are revolutionizing how healthcare is delivered.</p>
-    `;
+    // Content is already in HTML, no need to load
 }
 
 // Check if user already has a username in session
@@ -360,6 +289,9 @@ window.addEventListener('load', () => {
     if (darkModeEnabled) {
         document.body.classList.add('dark-mode');
     }
+
+    // Pre-load Wikipedia content
+    loadWikipediaContent();
 
     initSocket();
 
@@ -385,3 +317,35 @@ window.addEventListener('load', () => {
         });
     }
 });
+
+// Clear chat history with password
+function clearChatHistory() {
+    console.log('Clear button clicked');
+    document.getElementById('clearPasswordModal').classList.remove('hidden');
+    document.getElementById('clearPassword').focus();
+}
+
+function closeClearModal() {
+    document.getElementById('clearPasswordModal').classList.add('hidden');
+    document.getElementById('clearPassword').value = '';
+}
+
+function confirmClearChat() {
+    const password = document.getElementById('clearPassword').value;
+    console.log('Password entered:', password);
+    
+    if (password === 'smurf') {
+        console.log('Password correct, emitting clear_messages');
+        if (socket && socket.connected) {
+            socket.emit('clear_messages', {});
+            document.getElementById('messagesList').innerHTML = '';
+            closeClearModal();
+            alert('Chat history cleared!');
+        } else {
+            alert('Not connected to server!');
+        }
+    } else {
+        alert('Incorrect password!');
+        document.getElementById('clearPassword').value = '';
+    }
+}

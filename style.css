@@ -6,17 +6,17 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #000;
     height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #333;
+    color: #fff;
     transition: background 0.3s, color 0.3s;
 }
 
 body.dark-mode {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    background: #000;
     color: #e0e0e0;
 }
 
@@ -27,7 +27,7 @@ body.dark-mode {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -38,19 +38,67 @@ body.dark-mode {
     display: none;
 }
 
+#clearPassword {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: #fff;
+    margin-bottom: 10px;
+}
+
+#clearPassword::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+#clearPassword:focus {
+    outline: none;
+    border-color: #00d4ff;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+#clearPasswordModal button {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+#clearPasswordModal button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4);
+}
+
+#clearPasswordModal button:active {
+    transform: translateY(0);
+}
+
 .modal-content {
-    background: white;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 40px;
-    border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     text-align: center;
     max-width: 400px;
     animation: slideIn 0.3s ease-out;
+    color: #fff;
     transition: background 0.3s, color 0.3s;
 }
 
 body.dark-mode .modal-content {
-    background: #2d2d44;
+    background: rgba(255, 255, 255, 0.1);
     color: #e0e0e0;
 }
 
@@ -88,19 +136,20 @@ body.dark-mode #usernameInput::placeholder {
 }
 
 .modal-content h1 {
-    color: #667eea;
+    color: #fff;
     margin-bottom: 10px;
     font-size: 24px;
 }
 
 .modal-content p {
-    color: #666;
+    color: #ccc;
     margin-bottom: 25px;
     font-size: 14px;
 }
 
 .form-group {
     display: flex;
+    flex-direction: column;
     gap: 10px;
     margin-bottom: 20px;
 }
@@ -108,32 +157,41 @@ body.dark-mode #usernameInput::placeholder {
 #usernameInput {
     flex: 1;
     padding: 12px;
-    border: 2px solid #e0e0e0;
-    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
     font-size: 14px;
     transition: border-color 0.3s;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    color: #fff;
+}
+
+#usernameInput::placeholder {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 #usernameInput:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #00d4ff;
+    background: rgba(255, 255, 255, 0.15);
 }
 
 #joinBtn {
     padding: 12px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+    color: #000;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
 }
 
 #joinBtn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4);
 }
 
 #joinBtn:active {
@@ -151,7 +209,7 @@ body.dark-mode #usernameInput::placeholder {
     width: 100%;
     height: 100vh;
     display: flex;
-    background: #f5f5f5;
+    background: #000;
     overflow: hidden;
 }
 
@@ -160,19 +218,32 @@ body.dark-mode #usernameInput::placeholder {
 }
 
 .chat-header {
-    background: white;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 15px 20px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
     transition: background 0.3s, border-color 0.3s;
 }
 
 body.dark-mode .chat-header {
-    background: #2d2d44;
-    border-bottom-color: #444;
+    background: rgba(255, 255, 255, 0.08);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-info h1 {
+    font-size: 20px;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.room-info {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .header-buttons {
@@ -225,7 +296,7 @@ body.dark-mode .header-btn:hover {
 
 .leave-btn {
     padding: 8px 16px;
-    background: #ff6b6b;
+    background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
     color: white;
     border: none;
     border-radius: 6px;
@@ -236,31 +307,52 @@ body.dark-mode .header-btn:hover {
 }
 
 .leave-btn:hover {
-    background: #ff5252;
+    background: linear-gradient(135deg, #ff6666 0%, #dd2222 100%);
 }
 
 /* Sidebar */
 .sidebar {
     width: 200px;
-    background: white;
-    border-right: 1px solid #e0e0e0;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     padding: 15px;
     overflow-y: auto;
     transition: background 0.3s, border-color 0.3s, color 0.3s;
 }
 
 body.dark-mode .sidebar {
-    background: #2d2d44;
-    border-right-color: #444;
+    background: rgba(255, 255, 255, 0.08);
+    border-right-color: rgba(255, 255, 255, 0.1);
     color: #e0e0e0;
 }
 
+.users-section h3 {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
 body.dark-mode .users-section h3 {
-    color: #888;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.user-item {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 13px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 body.dark-mode .user-item {
-    background: #3d3d54;
+    background: rgba(255, 255, 255, 0.1);
     color: #e0e0e0;
 }
 
@@ -310,10 +402,11 @@ body.dark-mode .user-item {
     flex-direction: column;
     gap: 12px;
     transition: background 0.3s;
+    background: #000;
 }
 
 body.dark-mode .messages-list {
-    background: #1a1a2e;
+    background: #000;
 }
 
 body.dark-mode .message-bubble {
@@ -348,38 +441,50 @@ body.dark-mode .system-message {
 }
 
 .message.own .message-bubble {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(0, 153, 255, 0.3) 100%);
+    color: #00ffff;
+    border: 1px solid rgba(0, 212, 255, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .message-bubble {
-    background: white;
+    background: linear-gradient(135deg, rgba(0, 255, 100, 0.2) 0%, rgba(0, 200, 100, 0.2) 100%);
     border-radius: 12px;
     padding: 10px 14px;
     max-width: 60%;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 255, 100, 0.4);
     word-wrap: break-word;
     white-space: pre-wrap;
     overflow-wrap: break-word;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #00ff80;
 }
 
 .message-bubble strong {
     display: block;
     font-size: 12px;
     margin-bottom: 4px;
-    opacity: 0.7;
+    opacity: 0.9;
+    color: #00ffff;
 }
 
 .message-bubble span {
     font-size: 12px;
     display: block;
     margin-top: 4px;
-    opacity: 0.6;
+    opacity: 0.7;
+    color: rgba(0, 255, 128, 0.8);
 }
 
-.message.own .message-bubble strong,
+.message.own .message-bubble strong {
+    color: #00ffff;
+}
+
 .message.own .message-bubble span {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(0, 212, 255, 0.8);
 }
 
 .system-message {
@@ -397,31 +502,37 @@ body.dark-mode .system-message {
     display: flex;
     gap: 10px;
     padding: 15px 20px;
-    background: white;
-    border-top: 1px solid #e0e0e0;
+    background: rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(0, 212, 255, 0.2);
     transition: background 0.3s, border-color 0.3s;
     align-items: flex-end;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 body.dark-mode .message-input-area {
-    background: #2d2d44;
-    border-top-color: #444;
+    background: rgba(255, 255, 255, 0.05);
+    border-top-color: rgba(0, 212, 255, 0.2);
 }
 
 .wiki-input-btn {
     padding: 8px 12px;
-    background: #f0f0f0;
-    border: 1px solid #e0e0e0;
+    background: rgba(0, 212, 255, 0.2);
+    border: 1px solid rgba(0, 212, 255, 0.5);
     border-radius: 6px;
     cursor: pointer;
     font-size: 18px;
     transition: background 0.2s, transform 0.1s;
     flex-shrink: 0;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #00ffff;
 }
 
 .wiki-input-btn:hover {
-    background: #e0e0e0;
+    background: rgba(0, 212, 255, 0.3);
     transform: scale(1.05);
+    border-color: rgba(0, 212, 255, 0.7);
 }
 
 .wiki-input-btn:active {
@@ -429,19 +540,19 @@ body.dark-mode .message-input-area {
 }
 
 body.dark-mode .wiki-input-btn {
-    background: #444;
-    border-color: #555;
-    color: #e0e0e0;
+    background: rgba(0, 212, 255, 0.2);
+    border-color: rgba(0, 212, 255, 0.5);
+    color: #00ffff;
 }
 
 body.dark-mode .wiki-input-btn:hover {
-    background: #555;
+    background: rgba(0, 212, 255, 0.3);
 }
 
 #messageInput {
     flex: 1;
     padding: 10px 12px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(0, 212, 255, 0.3);
     border-radius: 6px;
     font-size: 14px;
     font-family: inherit;
@@ -449,56 +560,49 @@ body.dark-mode .wiki-input-btn:hover {
     resize: vertical;
     max-height: 120px;
     min-height: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #00ffff;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 #messageInput:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: rgba(0, 212, 255, 0.7);
 }
 
 body.dark-mode #messageInput {
-    background: #3d3d54;
-    border-color: #555;
-    color: #e0e0e0;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(0, 212, 255, 0.3);
+    color: #00ffff;
 }
 
 body.dark-mode #messageInput:focus {
-    border-color: #667eea;
+    border-color: rgba(0, 212, 255, 0.7);
 }
 
 body.dark-mode #messageInput::placeholder {
-    color: #888;
-}
-
-#messageInput {
-    flex: 1;
-    padding: 12px;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: inherit;
-    transition: border-color 0.3s;
-}
-
-#messageInput:focus {
-    outline: none;
-    border-color: #667eea;
+    color: rgba(0, 212, 255, 0.4);
 }
 
 .send-btn {
     padding: 12px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.6) 0%, rgba(0, 153, 255, 0.6) 100%);
+    color: #00ffff;
+    border: 1px solid rgba(0, 212, 255, 0.6);
     border-radius: 6px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
-    transition: transform 0.2s;
+    transition: transform 0.2s, background 0.3s;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .send-btn:hover {
     transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.8) 0%, rgba(0, 153, 255, 0.8) 100%);
+    border-color: rgba(0, 212, 255, 0.8);
 }
 
 .send-btn:active {
@@ -560,62 +664,376 @@ body.dark-mode #messageInput::placeholder {
     border-radius: 4px;
 }
 
-.wiki-modal-content {
-    flex: 1;
-    overflow-y: auto;
-    background: white;
-    padding: 20px 40px;
+/* Wikipedia Modal */
+.wiki-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.wiki-modal.hidden {
+    display: none;
+}
+
+.wiki-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Wikipedia Header */
+.wiki-header {
+    background: #fff;
+    border-bottom: 1px solid #a2a9b1;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    height: 60px;
+}
+
+.wiki-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wiki-menu-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
     color: #333;
-    line-height: 1.6;
-    max-width: 900px;
-    margin: 0 auto;
-    width: 100%;
 }
 
-.wiki-modal-content h1 {
-    font-size: 32px;
-    margin-top: 20px;
-    margin-bottom: 15px;
+.wiki-logo {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.wiki-logo-text {
+    font-size: 13px;
+    font-weight: 700;
     color: #000;
+    letter-spacing: 0.5px;
 }
 
-.wiki-modal-content h2 {
-    font-size: 24px;
-    margin-top: 25px;
-    margin-bottom: 12px;
-    color: #000;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 8px;
+.wiki-subtitle {
+    font-size: 10px;
+    color: #666;
 }
 
-.wiki-modal-content h3 {
-    font-size: 18px;
-    margin-top: 15px;
-    margin-bottom: 10px;
-    color: #000;
+.wiki-search {
+    display: flex;
+    flex: 1;
+    max-width: 400px;
+    gap: 4px;
 }
 
-.wiki-modal-content p {
-    margin-bottom: 15px;
+.wiki-search-box {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #a2a9b1;
+    border-radius: 2px;
+    font-size: 13px;
 }
 
-.wiki-modal-content ul,
-.wiki-modal-content ol {
-    margin-left: 20px;
-    margin-bottom: 15px;
+.wiki-search-btn {
+    padding: 6px 16px;
+    background: #f8f9fa;
+    border: 1px solid #a2a9b1;
+    border-radius: 2px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
 }
 
-.wiki-modal-content li {
+.wiki-search-btn:hover {
+    background: #fff;
+}
+
+.wiki-header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.wiki-header-right a {
+    color: #0645ad;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.wiki-header-right a:hover {
+    text-decoration: underline;
+}
+
+.wiki-close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #333;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+}
+
+/* Content Wrapper */
+.wiki-content-wrapper {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Left Sidebar */
+.wiki-sidebar-left {
+    width: 200px;
+    border-right: 1px solid #a2a9b1;
+    overflow-y: auto;
+    padding: 12px;
+    background: #f6f6f6;
+}
+
+.wiki-toc-box {
+    background: #f9f9f9;
+    border: 1px solid #a2a9b1;
+    border-radius: 2px;
+    padding: 8px 10px;
+}
+
+.wiki-toc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 8px;
+    font-size: 13px;
 }
 
-.wiki-modal-content a {
+.wiki-hide-link {
+    font-size: 11px;
+    color: #0645ad;
+    cursor: pointer;
+}
+
+.wiki-toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.wiki-toc-list li {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.wiki-toc-list a {
     color: #0645ad;
     text-decoration: none;
 }
 
-.wiki-modal-content a:hover {
+.wiki-toc-list a:hover {
     text-decoration: underline;
+}
+
+.expand {
+    display: inline-block;
+    width: 12px;
+    color: #666;
+    cursor: pointer;
+}
+
+/* Main Content */
+.wiki-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 30px;
+    background: #fff;
+}
+
+.wiki-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+
+.wiki-page-header h1 {
+    font-size: 32px;
+    font-weight: 600;
+    margin: 0;
+    border-bottom: 1px solid #a2a9b1;
+    padding-bottom: 10px;
+}
+
+.wiki-language-selector {
+    font-size: 12px;
+}
+
+.wiki-language-selector a {
+    color: #0645ad;
+    text-decoration: none;
+}
+
+.wiki-tabs {
+    display: flex;
+    gap: 20px;
+    margin: 12px 0;
+    border-bottom: 1px solid #a2a9b1;
+    padding-bottom: 10px;
+}
+
+.wiki-tab {
+    font-size: 13px;
+    color: #0645ad;
+    cursor: pointer;
+}
+
+.wiki-tab.active {
+    color: #222;
+    border-bottom: 3px solid #0645ad;
+    margin-bottom: -11px;
+    padding-bottom: 8px;
+}
+
+.wiki-source-note {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+/* Article Styling */
+.wiki-article {
+    font-family: Georgia, serif;
+    color: #222;
+    line-height: 1.6;
+}
+
+.wiki-article h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 20px 0 10px 0;
+    border-bottom: 1px solid #e8e8e8;
+    padding-bottom: 5px;
+}
+
+.wiki-article h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 15px 0 8px 0;
+}
+
+.wiki-article p {
+    margin-bottom: 12px;
+    text-align: justify;
+}
+
+.wiki-article ul,
+.wiki-article ol {
+    margin-left: 25px;
+    margin-bottom: 12px;
+}
+
+.wiki-article li {
+    margin-bottom: 6px;
+}
+
+.wiki-article a {
+    color: #0645ad;
+    text-decoration: none;
+}
+
+.wiki-article a:hover {
+    text-decoration: underline;
+}
+
+.wiki-edit-link {
+    font-size: 12px;
+    color: #0645ad;
+    margin-left: 4px;
+    cursor: pointer;
+}
+
+.wiki-image-right {
+    float: right;
+    margin: 0 0 15px 15px;
+    background: #f9f9f9;
+    border: 1px solid #c8cccf;
+    padding: 5px;
+    max-width: 280px;
+}
+
+.wiki-image-right img {
+    width: 100%;
+    height: auto;
+}
+
+.wiki-image-caption {
+    font-size: 12px;
+    color: #666;
+    padding: 8px;
+    text-align: center;
+}
+
+.wiki-references {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e8e8e8;
+}
+
+.wiki-references ol {
+    margin-left: 20px;
+}
+
+.wiki-references li {
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+/* Right Sidebar */
+.wiki-sidebar-right {
+    width: 220px;
+    border-left: 1px solid #a2a9b1;
+    overflow-y: auto;
+    padding: 12px;
+    background: #f6f6f6;
+}
+
+.wiki-appearance-box {
+    background: #f9f9f9;
+    border: 1px solid #a2a9b1;
+    border-radius: 2px;
+    padding: 10px;
+}
+
+.wiki-appearance-header {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.wiki-appearance-option {
+    font-size: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.wiki-appearance-option input[type="radio"] {
+    cursor: pointer;
+}
+
+.wiki-appearance-option label {
+    cursor: pointer;
 }
 
 @media (max-width: 768px) {
@@ -686,4 +1104,32 @@ body.dark-mode #messageInput::placeholder {
     .chat-main {
         min-height: 300px;
     }
+}
+
+/* Dark Mode - Hide chat bubbles and users */
+body.dark-mode .message-bubble {
+    background: #000 !important;
+    border-color: #000 !important;
+    color: #000 !important;
+}
+
+body.dark-mode .message-bubble strong,
+body.dark-mode .message-bubble span {
+    color: #000 !important;
+}
+
+body.dark-mode .user-item {
+    background: transparent !important;
+    color: transparent !important;
+    border: none !important;
+    pointer-events: none;
+}
+
+body.dark-mode .user-item::before {
+    color: transparent !important;
+}
+
+body.dark-mode .users-section h3 {
+    color: transparent !important;
+}
 }
