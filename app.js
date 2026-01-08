@@ -2,7 +2,6 @@
 let socket;
 let currentUsername = '';
 let currentRoomId = '';
-let roomEncryptionKey = null; // Shared room key
 let messageLog = [];
 let darkModeEnabled = localStorage.getItem('darkMode') === 'true';
 
@@ -48,50 +47,6 @@ function initSocket() {
     });
 }
 
-// Derive shared room key from room ID
-function deriveRoomKey(roomId) {
-    // Use SHA512 hash of room ID to derive a 32-byte key
-    const roomIdBytes = nacl.util.decodeUTF8(roomId);
-    const hash = nacl.hash(roomIdBytes);
-    return hash.slice(0, 32); // NaCl.secretbox needs 32 bytes
-}
-
-// Encrypt a message with shared room key (symmetric encryption)
-function encryptMessage(message, key) {
-    if (!key) return message;
-    
-    const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
-    const messageBytes = nacl.util.decodeUTF8(message);
-    
-    const encrypted = nacl.secretbox(messageBytes, nonce, key);
-    const encryptedBytes = new Uint8Array(nonce.length + encrypted.length);
-    encryptedBytes.set(nonce);
-    encryptedBytes.set(encrypted, nonce.length);
-    
-    return nacl.util.encodeBase64(encryptedBytes);
-}
-
-// Decrypt a message with shared room key (symmetric decryption)
-function decryptMessage(encryptedMessage, key) {
-    if (!key) return encryptedMessage;
-    
-    try {
-        const encryptedBytes = nacl.util.decodeBase64(encryptedMessage);
-        const nonce = encryptedBytes.slice(0, nacl.secretbox.nonceLength);
-        const cipher = encryptedBytes.slice(nacl.secretbox.nonceLength);
-        
-        const decrypted = nacl.secretbox.open(cipher, nonce, key);
-        
-        if (decrypted === false) {
-            return '[Decryption failed]';
-        }
-        
-        return nacl.util.encodeUTF8(decrypted);
-    } catch (e) {
-        console.error('Decryption error:', e);
-        return '[Decryption failed]';
-    }
-}
 
 // Join room with username
 function joinRoom() {
@@ -112,10 +67,6 @@ function joinRoom() {
     
     // Use fixed global room for everyone
     currentRoomId = 'global';
-
-    // Derive shared room key from room ID
-    roomEncryptionKey = deriveRoomKey(currentRoomId);
-    console.log('Derived room encryption key');
 
     // Hide modal and show chat
     document.getElementById('usernameModal').classList.add('hidden');
@@ -154,26 +105,10 @@ function sendMessage() {
 
     if (!message) return;
 
-    let encryptedMessage = message;
-    let isEncrypted = false;
-    
-    // Encrypt message with shared room key
-    if (roomEncryptionKey) {
-        try {
-            encryptedMessage = encryptMessage(message, roomEncryptionKey);
-            isEncrypted = true;
-            console.log('Message encrypted with room key');
-        } catch (e) {
-            console.error('Encryption error:', e);
-            isEncrypted = false;
-        }
-    }
-
     socket.emit('send_message', {
-        message: encryptedMessage,
+        message: message,
         roomId: currentRoomId,
-        username: currentUsername,
-        isEncrypted: isEncrypted
+        username: currentUsername
     });
 
     input.value = '';
@@ -195,42 +130,14 @@ function handleReceivedMessage(data) {
     username.textContent = data.username;
 
     const text = document.createElement('p');
-    
-    // Decrypt message if it's encrypted
-    let displayMessage = data.message;
-    let wasEncrypted = data.isEncrypted;
-    if (data.isEncrypted && roomEncryptionKey) {
-        try {
-            displayMessage = decryptMessage(data.message, roomEncryptionKey);
-            console.log('Message decrypted');
-        } catch (e) {
-            console.error('Decryption error:', e);
-            displayMessage = '[Decryption failed]';
-            wasEncrypted = false;
-        }
-    }
-    
-    text.textContent = displayMessage;
-
-    const timeContainer = document.createElement('div');
-    timeContainer.style.display = 'flex';
-    timeContainer.style.alignItems = 'center';
-    timeContainer.style.gap = '4px';
+    text.textContent = data.message;
 
     const time = document.createElement('span');
     time.textContent = new Date(data.timestamp).toLocaleTimeString();
 
-    const lockIcon = document.createElement('span');
-    lockIcon.className = 'message-lock-icon';
-    lockIcon.title = wasEncrypted ? 'Encrypted' : 'Not encrypted';
-    lockIcon.textContent = wasEncrypted ? '🔒' : '🔓';
-
-    timeContainer.appendChild(time);
-    timeContainer.appendChild(lockIcon);
-
     bubble.appendChild(username);
     bubble.appendChild(text);
-    bubble.appendChild(timeContainer);
+    bubble.appendChild(time);
     messageDiv.appendChild(bubble);
 
     messagesList.appendChild(messageDiv);
@@ -254,41 +161,14 @@ function displayMessageHistory(messages) {
         username.textContent = msg.username;
 
         const text = document.createElement('p');
-        
-        // Decrypt message if it's encrypted
-        let displayMessage = msg.message;
-        let wasEncrypted = msg.isEncrypted;
-        if (msg.isEncrypted && roomEncryptionKey) {
-            try {
-                displayMessage = decryptMessage(msg.message, roomEncryptionKey);
-            } catch (e) {
-                console.error('Decryption error:', e);
-                displayMessage = '[Decryption failed]';
-                wasEncrypted = false;
-            }
-        }
-        
-        text.textContent = displayMessage;
-
-        const timeContainer = document.createElement('div');
-        timeContainer.style.display = 'flex';
-        timeContainer.style.alignItems = 'center';
-        timeContainer.style.gap = '4px';
+        text.textContent = msg.message;
 
         const time = document.createElement('span');
         time.textContent = new Date(msg.timestamp).toLocaleTimeString();
 
-        const lockIcon = document.createElement('span');
-        lockIcon.className = 'message-lock-icon';
-        lockIcon.title = wasEncrypted ? 'Encrypted' : 'Not encrypted';
-        lockIcon.textContent = wasEncrypted ? '🔒' : '🔓';
-
-        timeContainer.appendChild(time);
-        timeContainer.appendChild(lockIcon);
-
         bubble.appendChild(username);
         bubble.appendChild(text);
-        bubble.appendChild(timeContainer);
+        bubble.appendChild(time);
         messageDiv.appendChild(bubble);
 
         messagesList.appendChild(messageDiv);

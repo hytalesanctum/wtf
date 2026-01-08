@@ -479,19 +479,6 @@ body.dark-mode .system-message {
     color: rgba(0, 255, 128, 0.8);
 }
 
-.message-lock-icon {
-    font-size: 10px;
-    cursor: help;
-    opacity: 0.8;
-    display: inline-block;
-}
-
-body.dark-mode .message-lock-icon {
-    opacity: 0;
-    cursor: default;
-    pointer-events: none;
-}
-
 .message.own .message-bubble strong {
     color: #00ffff;
 }

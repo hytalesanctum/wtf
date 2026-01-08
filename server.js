@@ -136,7 +136,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const { message, isEncrypted } = data;
+    const { message } = data;
     const roomId = GLOBAL_ROOM;
 
     // Store message in room history
@@ -146,8 +146,7 @@ io.on('connection', (socket) => {
         username: user.username,
         message: message,
         timestamp: new Date(),
-        senderId: socket.id,
-        isEncrypted: isEncrypted || false
+        senderId: socket.id
       };
       room.messages.push(newMessage);
 
@@ -166,8 +165,7 @@ io.on('connection', (socket) => {
       username: user.username,
       message: message,
       timestamp: new Date(),
-      senderId: socket.id,
-      isEncrypted: isEncrypted || false
+      senderId: socket.id
     });
   });
 
