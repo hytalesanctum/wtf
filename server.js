@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +18,42 @@ const io = socketIo(server, {
 const users = new Map();
 const rooms = new Map();
 
+// Global room ID
+const GLOBAL_ROOM = 'global';
+
+// Message history file
+const MESSAGES_FILE = path.join(__dirname, 'messages.json');
+
+// Load persisted messages from file
+function loadMessages() {
+  try {
+    if (fs.existsSync(MESSAGES_FILE)) {
+      const data = fs.readFileSync(MESSAGES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Error loading messages:', err);
+  }
+  return [];
+}
+
+// Save messages to file
+function saveMessages(messages) {
+  try {
+    fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+  } catch (err) {
+    console.error('Error saving messages:', err);
+  }
+}
+
+// Initialize global room with persisted messages
+const globalMessages = loadMessages();
+rooms.set(GLOBAL_ROOM, {
+  messages: globalMessages,
+  users: [],
+  createdAt: new Date()
+});
+
 app.use(express.static('.'));
 
 app.get('/', (req, res) => {
@@ -30,42 +67,37 @@ io.on('connection', (socket) => {
   socket.on('join_room', (data) => {
     const { username, roomId } = data;
     
-    socket.join(roomId);
+    // Override roomId to always be the global room
+    const actualRoomId = GLOBAL_ROOM;
+    socket.join(actualRoomId);
     
     // Store user info
     users.set(socket.id, {
       username,
-      roomId,
+      roomId: actualRoomId,
       joinedAt: new Date()
     });
 
-    // Initialize room if it doesn't exist
-    if (!rooms.has(roomId)) {
-      rooms.set(roomId, {
-        messages: [],
-        users: [],
-        createdAt: new Date()
-      });
-    }
+    // Get global room
+    const room = rooms.get(actualRoomId);
 
     // Add user to room's user list
-    const room = rooms.get(roomId);
     room.users.push({
       socketId: socket.id,
       username
     });
 
     // Notify others that user joined
-    socket.broadcast.to(roomId).emit('user_joined', {
+    socket.broadcast.to(actualRoomId).emit('user_joined', {
       username,
       message: `${username} joined the chat`,
       timestamp: new Date()
     });
 
     // Send current user list to all in room
-    io.to(roomId).emit('user_list', room.users.map(u => u.username));
+    io.to(actualRoomId).emit('user_list', room.users.map(u => u.username));
 
-    console.log(`${username} joined room ${roomId}`);
+    console.log(`${username} joined global room`);
   });
 
   // Handle incoming messages
@@ -77,21 +109,27 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const { message, roomId, encryptedMessage } = data;
+    const { message, encryptedMessage } = data;
+    const roomId = GLOBAL_ROOM;
 
     // Store message in room history
     const room = rooms.get(roomId);
     if (room) {
-      room.messages.push({
+      const newMessage = {
         username: user.username,
         message: encryptedMessage || message,
         timestamp: new Date(),
         senderId: socket.id
-      });
+      };
+      room.messages.push(newMessage);
 
-      // Keep only last 100 messages per room
-      if (room.messages.length > 100) {
+      // Save to file
+      saveMessages(room.messages);
+
+      // Keep only last 1000 messages in memory
+      if (room.messages.length > 1000) {
         room.messages.shift();
+        saveMessages(room.messages);
       }
     }
 
@@ -109,33 +147,28 @@ io.on('connection', (socket) => {
     const user = users.get(socket.id);
     
     if (user) {
-      const room = rooms.get(user.roomId);
+      const room = rooms.get(GLOBAL_ROOM);
       if (room) {
         room.users = room.users.filter(u => u.socketId !== socket.id);
         
         // Notify others
-        io.to(user.roomId).emit('user_left', {
+        io.to(GLOBAL_ROOM).emit('user_left', {
           username: user.username,
           message: `${user.username} left the chat`,
           userCount: room.users.length
         });
 
-        io.to(user.roomId).emit('user_list', room.users.map(u => u.username));
-
-        // Clean up empty rooms
-        if (room.users.length === 0) {
-          rooms.delete(user.roomId);
-        }
+        io.to(GLOBAL_ROOM).emit('user_list', room.users.map(u => u.username));
       }
 
       users.delete(socket.id);
-      console.log(`${user.username} disconnected from room ${user.roomId}`);
+      console.log(`${user.username} disconnected`);
     }
   });
 
   // Get message history when user joins
   socket.on('get_history', (roomId) => {
-    const room = rooms.get(roomId);
+    const room = rooms.get(GLOBAL_ROOM);
     if (room) {
       socket.emit('message_history', room.messages);
     }

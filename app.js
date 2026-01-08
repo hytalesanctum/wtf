@@ -99,17 +99,8 @@ function joinRoom() {
 
     currentUsername = username;
     
-    // Generate room ID from URL if present, otherwise create new one
-    const urlParams = new URLSearchParams(window.location.search);
-    currentRoomId = urlParams.get('room') || generateRoomId();
-
-    // Generate encryption keys
-    encryptionKeys = generateEncryptionKeys();
-
-    // Update URL with room ID
-    if (!urlParams.get('room')) {
-        window.history.pushState({}, '', `?room=${currentRoomId}`);
-    }
+    // Use fixed global room for everyone
+    currentRoomId = 'global';
 
     // Hide modal and show chat
     document.getElementById('usernameModal').classList.add('hidden');
@@ -131,8 +122,8 @@ function joinRoom() {
     document.getElementById('messageInput').focus();
 
     // Copy room link to clipboard
-    const roomLink = `${window.location.origin}?room=${currentRoomId}`;
-    console.log('Share this link:', roomLink);
+    const roomLink = `${window.location.origin}`;
+    console.log('Shared chatroom:', roomLink);
 }
 
 // Generate unique room ID
