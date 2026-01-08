@@ -37,6 +37,11 @@ function initSocket() {
     socket.on('disconnect', () => {
         console.log('Disconnected from server');
     });
+
+    socket.on('access_denied', (data) => {
+        alert(data.message);
+        window.location.href = '/';
+    });
 }
 
 // Generate encryption keys for this session
@@ -278,49 +283,75 @@ async function loadWikipediaContent() {
     const contentDiv = document.getElementById('wikipediaContent');
     
     try {
-        const response = await fetch('https://en.wikipedia.org/api/rest_v1/page/html/Medicine');
-        const html = await response.text();
+        // Use Wikipedia's REST API with mobile endpoint
+        const response = await fetch('https://en.wikipedia.org/api/rest_v1/page/mobile/sections/Medicine', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         
-        // Parse the HTML and extract main content
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
+        if (!response.ok) {
+            throw new Error('Failed to fetch');
+        }
         
-        // Get main content and clean it up
-        const mainContent = doc.querySelector('main');
-        if (mainContent) {
-            // Remove unwanted elements
-            const unwantedSelectors = ['script', 'style', '.mw-editsection', '.navbox', '.infobox-full-data', '.reference', '.mw-references'];
-            unwantedSelectors.forEach(selector => {
-                mainContent.querySelectorAll(selector).forEach(el => el.remove());
-            });
-            
-            // Limit content to first few sections
-            const sections = mainContent.querySelectorAll('h1, h2, h3, p');
-            let content = '';
-            let count = 0;
-            
-            sections.forEach(el => {
-                if (count < 200) {
-                    if (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'H3' || el.tagName === 'P') {
-                        content += el.outerHTML;
-                        count++;
-                    }
+        const data = await response.json();
+        
+        let html = '<h1>Medicine</h1>';
+        
+        if (data.sections) {
+            data.sections.forEach(section => {
+                if (section.text) {
+                    html += `<h2>${section.text}</h2>`;
                 }
             });
-            
-            contentDiv.innerHTML = content || '<p>Content loaded successfully.</p>';
         }
+        
+        contentDiv.innerHTML = html || getDefaultMedicineContent();
     } catch (error) {
         console.error('Error loading Wikipedia:', error);
-        contentDiv.innerHTML = `
-            <div style="padding: 20px; text-align: center;">
-                <h3>Medicine</h3>
-                <p>Medicine is the science and practice of diagnosing, treating, and preventing disease. It encompasses a wide range of health-care practices evolved to maintain and restore health by the prevention and treatment of illness.</p>
-                <p><strong>Note:</strong> Full Wikipedia content requires internet. Here's a brief overview.</p>
-                <p style="font-size: 12px; color: #999; margin-top: 20px;">Unable to load full Wikipedia page due to network constraints.</p>
-            </div>
-        `;
+        contentDiv.innerHTML = getDefaultMedicineContent();
     }
+}
+
+// Fallback content if API fails
+function getDefaultMedicineContent() {
+    return `
+        <h1>Medicine</h1>
+        <p><strong>Medicine</strong> is the science and practice of diagnosing, treating, and preventing disease.</p>
+        
+        <h2>Definition</h2>
+        <p>Medicine encompasses a variety of health care practices evolved to maintain and restore health by the prevention and treatment of illness. It is both an area of knowledge—a science of body systems and diseases—and the applied practice of that knowledge.</p>
+        
+        <h2>History</h2>
+        <p>The practice of medicine dates back to prehistoric times, with the oldest known medical texts appearing around 1600 BC. Ancient medical practitioners developed empirical treatments and surgical techniques that were passed down through generations.</p>
+        
+        <h2>Branches of Medicine</h2>
+        <ul>
+            <li><strong>Internal Medicine</strong> - Treatment of adult diseases</li>
+            <li><strong>Pediatrics</strong> - Treatment of children</li>
+            <li><strong>Surgery</strong> - Operative treatment</li>
+            <li><strong>Psychiatry</strong> - Mental health treatment</li>
+            <li><strong>Cardiology</strong> - Heart and circulatory system</li>
+            <li><strong>Oncology</strong> - Cancer treatment</li>
+            <li><strong>Neurology</strong> - Nervous system disorders</li>
+        </ul>
+        
+        <h2>Modern Medicine</h2>
+        <p>Modern medicine relies on various tools and techniques including:</p>
+        <ul>
+            <li>Pharmaceutical drugs</li>
+            <li>Surgical procedures</li>
+            <li>Diagnostic imaging</li>
+            <li>Laboratory testing</li>
+            <li>Psychological therapies</li>
+        </ul>
+        
+        <h2>Medical Ethics</h2>
+        <p>Modern medical practice is guided by ethical principles including autonomy, beneficence, non-maleficence, and justice. Healthcare providers must maintain confidentiality and obtain informed consent from patients.</p>
+        
+        <h2>Future of Medicine</h2>
+        <p>Emerging fields in medicine include personalized medicine, regenerative medicine, and digital health technologies that are revolutionizing how healthcare is delivered.</p>
+    `;
 }
 
 // Check if user already has a username in session

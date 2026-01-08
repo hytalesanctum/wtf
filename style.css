@@ -359,6 +359,8 @@ body.dark-mode .system-message {
     max-width: 60%;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     word-wrap: break-word;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 .message-bubble strong {
@@ -508,12 +510,12 @@ body.dark-mode #messageInput::placeholder {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    width: 100vw;
+    height: 100vh;
+    background: white;
     display: flex;
     flex-direction: column;
-    z-index: 999;
+    z-index: 9999;
     animation: fadeIn 0.3s ease-out;
 }
 
@@ -522,28 +524,20 @@ body.dark-mode #messageInput::placeholder {
 }
 
 .wiki-modal-header {
-    background: white;
-    padding: 15px 20px;
-    border-bottom: 1px solid #e0e0e0;
+    background: #f5f5f5;
+    padding: 12px 20px;
+    border-bottom: 1px solid #ddd;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-body.dark-mode .wiki-modal-header {
-    background: #2d2d44;
-    border-bottom-color: #444;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .wiki-modal-header h2 {
     margin: 0;
     font-size: 18px;
     color: #333;
-}
-
-body.dark-mode .wiki-modal-header h2 {
-    color: #e0e0e0;
+    font-weight: 600;
 }
 
 .wiki-close-btn {
@@ -553,48 +547,52 @@ body.dark-mode .wiki-modal-header h2 {
     cursor: pointer;
     color: #333;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s;
+    transition: background 0.2s;
 }
 
 .wiki-close-btn:hover {
-    transform: scale(1.1);
-}
-
-body.dark-mode .wiki-close-btn {
-    color: #e0e0e0;
+    background: #e0e0e0;
+    border-radius: 4px;
 }
 
 .wiki-modal-content {
     flex: 1;
     overflow-y: auto;
     background: white;
-    padding: 20px;
+    padding: 20px 40px;
     color: #333;
     line-height: 1.6;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
 }
 
-body.dark-mode .wiki-modal-content {
-    background: #1a1a2e;
-    color: #e0e0e0;
-}
-
-.wiki-modal-content h1,
-.wiki-modal-content h2,
-.wiki-modal-content h3 {
-    color: #333;
+.wiki-modal-content h1 {
+    font-size: 32px;
     margin-top: 20px;
-    margin-bottom: 10px;
+    margin-bottom: 15px;
+    color: #000;
 }
 
-body.dark-mode .wiki-modal-content h1,
-body.dark-mode .wiki-modal-content h2,
-body.dark-mode .wiki-modal-content h3 {
-    color: #667eea;
+.wiki-modal-content h2 {
+    font-size: 24px;
+    margin-top: 25px;
+    margin-bottom: 12px;
+    color: #000;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 8px;
+}
+
+.wiki-modal-content h3 {
+    font-size: 18px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    color: #000;
 }
 
 .wiki-modal-content p {
@@ -612,16 +610,12 @@ body.dark-mode .wiki-modal-content h3 {
 }
 
 .wiki-modal-content a {
-    color: #667eea;
+    color: #0645ad;
     text-decoration: none;
 }
 
 .wiki-modal-content a:hover {
     text-decoration: underline;
-}
-
-body.dark-mode .wiki-modal-content a {
-    color: #8b9bff;
 }
 
 @media (max-width: 768px) {

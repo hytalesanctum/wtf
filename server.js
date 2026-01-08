@@ -4,6 +4,7 @@ const socketIo = require('socket.io');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
+const geoip = require('geoip-lite');
 
 const app = express();
 const server = http.createServer(app);
@@ -20,6 +21,9 @@ const rooms = new Map();
 
 // Global room ID
 const GLOBAL_ROOM = 'global';
+
+// Allowed countries (ISO 2-letter country codes)
+const ALLOWED_COUNTRIES = ['MA', 'AT', 'IR', 'IQ'];
 
 // Message history file
 const MESSAGES_FILE = path.join(__dirname, 'messages.json');
@@ -62,6 +66,29 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   console.log('New user connected:', socket.id);
+
+  // Get user's IP address
+  const clientIp = socket.handshake.headers['x-forwarded-for']?.split(',')[0] || 
+                   socket.handshake.address || 
+                   socket.conn.remoteAddress;
+
+  // Get geolocation data
+  const geo = geoip.lookup(clientIp);
+  const country = geo?.country;
+
+  console.log(`Connection from IP: ${clientIp}, Country: ${country}`);
+
+  // Check if user's country is allowed
+  if (!ALLOWED_COUNTRIES.includes(country)) {
+    console.log(`Access denied for IP ${clientIp} from ${country}`);
+    socket.emit('access_denied', {
+      message: `Access denied. This chatroom is only available in Morocco, Austria, Iran, and Iraq.`
+    });
+    socket.disconnect(true);
+    return;
+  }
+
+  console.log(`Access granted for IP ${clientIp} from ${country}`);
 
   // User sets their username and joins a room
   socket.on('join_room', (data) => {
