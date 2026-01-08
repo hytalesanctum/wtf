@@ -18,7 +18,6 @@ const io = socketIo(server, {
 // Store active users and their room/username mapping
 const users = new Map();
 const rooms = new Map();
-const userPublicKeys = new Map(); // Store public keys: username -> publicKey
 
 // Global room ID
 const GLOBAL_ROOM = 'global';
@@ -93,7 +92,7 @@ io.on('connection', (socket) => {
 
   // User sets their username and joins a room
   socket.on('join_room', (data) => {
-    const { username, roomId, publicKey } = data;
+    const { username, roomId } = data;
     
     // Override roomId to always be the global room
     const actualRoomId = GLOBAL_ROOM;
@@ -105,12 +104,6 @@ io.on('connection', (socket) => {
       roomId: actualRoomId,
       joinedAt: new Date()
     });
-
-    // Store public key
-    if (publicKey) {
-      userPublicKeys.set(username, publicKey);
-      console.log(`Stored public key for ${username}`);
-    }
 
     // Get global room
     const room = rooms.get(actualRoomId);
@@ -130,13 +123,6 @@ io.on('connection', (socket) => {
 
     // Send current user list to all in room
     io.to(actualRoomId).emit('user_list', room.users.map(u => u.username));
-
-    // Send all public keys to all users in room
-    const publicKeysObj = {};
-    for (const [user, key] of userPublicKeys) {
-      publicKeysObj[user] = key;
-    }
-    io.to(actualRoomId).emit('user_public_keys', publicKeysObj);
 
     console.log(`${username} joined global room`);
   });
@@ -216,13 +202,6 @@ io.on('connection', (socket) => {
         });
 
         io.to(GLOBAL_ROOM).emit('user_list', room.users.map(u => u.username));
-        
-        // Update public keys list
-        const publicKeysObj = {};
-        for (const [user, key] of userPublicKeys) {
-          publicKeysObj[user] = key;
-        }
-        io.to(GLOBAL_ROOM).emit('user_public_keys', publicKeysObj);
       }
 
       users.delete(socket.id);

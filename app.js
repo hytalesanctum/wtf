@@ -2,10 +2,9 @@
 let socket;
 let currentUsername = '';
 let currentRoomId = '';
-let encryptionKeys = null;
+let roomEncryptionKey = null; // Shared room key
 let messageLog = [];
 let darkModeEnabled = localStorage.getItem('darkMode') === 'true';
-let userPublicKeys = {}; // Store public keys of all users
 
 // Initialize Socket.IO connection
 function initSocket() {
@@ -31,11 +30,6 @@ function initSocket() {
         updateUserList(users);
     });
 
-    socket.on('user_public_keys', (keys) => {
-        userPublicKeys = keys;
-        console.log('Received public keys:', Object.keys(userPublicKeys).length, 'users');
-    });
-
     socket.on('message_history', (messages) => {
         displayMessageHistory(messages);
     });
@@ -54,20 +48,22 @@ function initSocket() {
     });
 }
 
-// Generate encryption keys for this session
-function generateEncryptionKeys() {
-    const keyPair = nacl.box.keyPair();
-    return keyPair;
+// Derive shared room key from room ID
+function deriveRoomKey(roomId) {
+    // Use SHA512 hash of room ID to derive a 32-byte key
+    const roomIdBytes = nacl.util.decodeUTF8(roomId);
+    const hash = nacl.hash(roomIdBytes);
+    return hash.slice(0, 32); // NaCl.secretbox needs 32 bytes
 }
 
-// Encrypt a message
-function encryptMessage(message, publicKey) {
-    if (!encryptionKeys) return message;
+// Encrypt a message with shared room key (symmetric encryption)
+function encryptMessage(message, key) {
+    if (!key) return message;
     
-    const nonce = nacl.randomBytes(nacl.box.nonceLength);
+    const nonce = nacl.randomBytes(nacl.secretbox.nonceLength);
     const messageBytes = nacl.util.decodeUTF8(message);
     
-    const encrypted = nacl.box(messageBytes, nonce, publicKey, encryptionKeys.secretKey);
+    const encrypted = nacl.secretbox(messageBytes, nonce, key);
     const encryptedBytes = new Uint8Array(nonce.length + encrypted.length);
     encryptedBytes.set(nonce);
     encryptedBytes.set(encrypted, nonce.length);
@@ -75,16 +71,16 @@ function encryptMessage(message, publicKey) {
     return nacl.util.encodeBase64(encryptedBytes);
 }
 
-// Decrypt a message
-function decryptMessage(encryptedMessage, publicKey) {
-    if (!encryptionKeys) return encryptedMessage;
+// Decrypt a message with shared room key (symmetric decryption)
+function decryptMessage(encryptedMessage, key) {
+    if (!key) return encryptedMessage;
     
     try {
         const encryptedBytes = nacl.util.decodeBase64(encryptedMessage);
-        const nonce = encryptedBytes.slice(0, nacl.box.nonceLength);
-        const cipher = encryptedBytes.slice(nacl.box.nonceLength);
+        const nonce = encryptedBytes.slice(0, nacl.secretbox.nonceLength);
+        const cipher = encryptedBytes.slice(nacl.secretbox.nonceLength);
         
-        const decrypted = nacl.box.open(cipher, nonce, publicKey, encryptionKeys.secretKey);
+        const decrypted = nacl.secretbox.open(cipher, nonce, key);
         
         if (decrypted === false) {
             return '[Decryption failed]';
@@ -117,10 +113,9 @@ function joinRoom() {
     // Use fixed global room for everyone
     currentRoomId = 'global';
 
-    // Generate encryption keys for this session
-    encryptionKeys = generateEncryptionKeys();
-    const publicKeyBase64 = nacl.util.encodeBase64(encryptionKeys.publicKey);
-    console.log('Generated keypair, public key:', publicKeyBase64);
+    // Derive shared room key from room ID
+    roomEncryptionKey = deriveRoomKey(currentRoomId);
+    console.log('Derived room encryption key');
 
     // Hide modal and show chat
     document.getElementById('usernameModal').classList.add('hidden');
@@ -129,11 +124,10 @@ function joinRoom() {
     // Update room info
     document.getElementById('roomInfo').textContent = `Room: ${currentRoomId.substring(0, 8)}... • You are ${username}`;
 
-    // Connect to room with public key
+    // Connect to room
     socket.emit('join_room', {
         username: currentUsername,
-        roomId: currentRoomId,
-        publicKey: publicKeyBase64
+        roomId: currentRoomId
     });
 
     // Request message history
@@ -163,12 +157,12 @@ function sendMessage() {
     let encryptedMessage = message;
     let isEncrypted = false;
     
-    // Encrypt message with our own public key (so others can decrypt with our public key)
-    if (encryptionKeys) {
+    // Encrypt message with shared room key
+    if (roomEncryptionKey) {
         try {
-            encryptedMessage = encryptMessage(message, encryptionKeys.publicKey);
+            encryptedMessage = encryptMessage(message, roomEncryptionKey);
             isEncrypted = true;
-            console.log('Message encrypted with own public key');
+            console.log('Message encrypted with room key');
         } catch (e) {
             console.error('Encryption error:', e);
             isEncrypted = false;
@@ -205,11 +199,9 @@ function handleReceivedMessage(data) {
     // Decrypt message if it's encrypted
     let displayMessage = data.message;
     let wasEncrypted = data.isEncrypted;
-    if (data.isEncrypted && userPublicKeys[data.username]) {
+    if (data.isEncrypted && roomEncryptionKey) {
         try {
-            const senderPublicKeyBase64 = userPublicKeys[data.username];
-            const senderPublicKey = nacl.util.decodeBase64(senderPublicKeyBase64);
-            displayMessage = decryptMessage(data.message, senderPublicKey);
+            displayMessage = decryptMessage(data.message, roomEncryptionKey);
             console.log('Message decrypted');
         } catch (e) {
             console.error('Decryption error:', e);
@@ -266,11 +258,9 @@ function displayMessageHistory(messages) {
         // Decrypt message if it's encrypted
         let displayMessage = msg.message;
         let wasEncrypted = msg.isEncrypted;
-        if (msg.isEncrypted && userPublicKeys[msg.username]) {
+        if (msg.isEncrypted && roomEncryptionKey) {
             try {
-                const senderPublicKeyBase64 = userPublicKeys[msg.username];
-                const senderPublicKey = nacl.util.decodeBase64(senderPublicKeyBase64);
-                displayMessage = decryptMessage(msg.message, senderPublicKey);
+                displayMessage = decryptMessage(msg.message, roomEncryptionKey);
             } catch (e) {
                 console.error('Decryption error:', e);
                 displayMessage = '[Decryption failed]';
