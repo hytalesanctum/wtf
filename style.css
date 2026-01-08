@@ -486,6 +486,12 @@ body.dark-mode .system-message {
     display: inline-block;
 }
 
+body.dark-mode .message-lock-icon {
+    opacity: 0;
+    cursor: default;
+    pointer-events: none;
+}
+
 .message.own .message-bubble strong {
     color: #00ffff;
 }
