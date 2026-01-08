@@ -480,11 +480,10 @@ body.dark-mode .system-message {
 }
 
 .message-lock-icon {
-    font-size: 12px;
-    display: block;
-    margin-top: 4px;
+    font-size: 10px;
     cursor: help;
     opacity: 0.8;
+    display: inline-block;
 }
 
 .message.own .message-bubble strong {

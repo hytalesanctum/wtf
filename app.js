@@ -161,21 +161,17 @@ function sendMessage() {
     if (!message) return;
 
     let encryptedMessage = message;
+    let isEncrypted = false;
     
-    // Encrypt message if we have public keys from other users
-    if (Object.keys(userPublicKeys).length > 0) {
-        const publicKeyStrings = Object.values(userPublicKeys);
-        if (publicKeyStrings.length > 0) {
-            try {
-                // Use first user's public key for encryption (for broadcast)
-                const recipientPublicKeyBase64 = publicKeyStrings[0];
-                const recipientPublicKey = nacl.util.decodeBase64(recipientPublicKeyBase64);
-                encryptedMessage = encryptMessage(message, recipientPublicKey);
-                console.log('Message encrypted');
-            } catch (e) {
-                console.error('Encryption error:', e);
-                encryptedMessage = message; // Fall back to unencrypted
-            }
+    // Encrypt message with our own public key (so others can decrypt with our public key)
+    if (encryptionKeys) {
+        try {
+            encryptedMessage = encryptMessage(message, encryptionKeys.publicKey);
+            isEncrypted = true;
+            console.log('Message encrypted with own public key');
+        } catch (e) {
+            console.error('Encryption error:', e);
+            isEncrypted = false;
         }
     }
 
@@ -183,7 +179,7 @@ function sendMessage() {
         message: encryptedMessage,
         roomId: currentRoomId,
         username: currentUsername,
-        isEncrypted: encryptedMessage !== message
+        isEncrypted: isEncrypted
     });
 
     input.value = '';
@@ -224,6 +220,11 @@ function handleReceivedMessage(data) {
     
     text.textContent = displayMessage;
 
+    const timeContainer = document.createElement('div');
+    timeContainer.style.display = 'flex';
+    timeContainer.style.alignItems = 'center';
+    timeContainer.style.gap = '4px';
+
     const time = document.createElement('span');
     time.textContent = new Date(data.timestamp).toLocaleTimeString();
 
@@ -232,10 +233,12 @@ function handleReceivedMessage(data) {
     lockIcon.title = wasEncrypted ? 'Encrypted' : 'Not encrypted';
     lockIcon.textContent = wasEncrypted ? '🔒' : '🔓';
 
+    timeContainer.appendChild(time);
+    timeContainer.appendChild(lockIcon);
+
     bubble.appendChild(username);
     bubble.appendChild(text);
-    bubble.appendChild(time);
-    bubble.appendChild(lockIcon);
+    bubble.appendChild(timeContainer);
     messageDiv.appendChild(bubble);
 
     messagesList.appendChild(messageDiv);
@@ -277,6 +280,11 @@ function displayMessageHistory(messages) {
         
         text.textContent = displayMessage;
 
+        const timeContainer = document.createElement('div');
+        timeContainer.style.display = 'flex';
+        timeContainer.style.alignItems = 'center';
+        timeContainer.style.gap = '4px';
+
         const time = document.createElement('span');
         time.textContent = new Date(msg.timestamp).toLocaleTimeString();
 
@@ -285,10 +293,12 @@ function displayMessageHistory(messages) {
         lockIcon.title = wasEncrypted ? 'Encrypted' : 'Not encrypted';
         lockIcon.textContent = wasEncrypted ? '🔒' : '🔓';
 
+        timeContainer.appendChild(time);
+        timeContainer.appendChild(lockIcon);
+
         bubble.appendChild(username);
         bubble.appendChild(text);
-        bubble.appendChild(time);
-        bubble.appendChild(lockIcon);
+        bubble.appendChild(timeContainer);
         messageDiv.appendChild(bubble);
 
         messagesList.appendChild(messageDiv);
