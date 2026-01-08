@@ -8,7 +8,7 @@ let darkModeEnabled = localStorage.getItem('darkMode') === 'true';
 
 // Initialize Socket.IO connection
 function initSocket() {
-    socket = io();
+    socket = io('https://wtf-production-bf2a.up.railway.app');
 
     socket.on('connect', () => {
         console.log('Connected to server');
