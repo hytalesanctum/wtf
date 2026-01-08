@@ -69,6 +69,10 @@ rooms.set(GLOBAL_ROOM, {
   createdAt: new Date()
 });
 
+// ===== TRON GAME STATE (Global) =====
+const gameRooms = new Map();
+const gameCountdowns = new Map();
+
 app.use(express.static('.'));
 
 app.get('/', (req, res) => {
@@ -228,10 +232,6 @@ io.on('connection', (socket) => {
 
   // ===== TRON GAME SOCKET EVENTS =====
 
-  // Store active room game states
-  const gameRooms = new Map();
-  const gameCountdowns = new Map();
-
   function getGameRoom(roomId) {
     if (!gameRooms.has(roomId)) {
       gameRooms.set(roomId, {
@@ -286,15 +286,29 @@ io.on('connection', (socket) => {
 
   socket.on('game_ready', (data) => {
     const gameRoom = getGameRoom(data.roomId);
+    
+    if (!gameRoom.players[data.playerId]) {
+      console.log('Player not in game room:', data.playerId);
+      return;
+    }
+    
     gameRoom.ready[data.playerId] = true;
+    gameRoom.players[data.playerId].ready = true;
     
     const readyCount = Object.values(gameRoom.ready).filter(r => r).length;
     const playerCount = Object.keys(gameRoom.players).length;
     
-    console.log(`Player ${data.username} ready. Ready: ${readyCount}/${playerCount}`);
+    console.log(`[${data.roomId}] Player ${data.username} ready. Ready: ${readyCount}/${playerCount}, GameRunning: ${gameRoom.gameRunning}`);
+    
+    // Notify all players of ready state
+    io.to(data.roomId).emit('game_ready_state', {
+      readyPlayers: readyCount,
+      totalPlayers: playerCount
+    });
     
     // Start countdown if 2+ players ready and game not running
     if (readyCount >= 2 && playerCount >= 2 && !gameRoom.gameRunning && !gameCountdowns.has(data.roomId)) {
+      console.log(`[${data.roomId}] Starting countdown...`);
       startGameCountdown(data.roomId, gameRoom, io);
     }
   });

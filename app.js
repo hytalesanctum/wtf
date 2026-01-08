@@ -130,7 +130,17 @@ function initSocket() {
 
     socket.on('game_player_joined', (data) => {
         gameState.players = data.players;
+        console.log('Players in game:', data.players);
         updateGameUI();
+    });
+
+    socket.on('game_ready_state', (data) => {
+        console.log('Ready state update:', data.readyPlayers, 'out of', data.totalPlayers);
+        // Update UI if needed
+        const readyBtn = document.getElementById('gameStartBtn');
+        if (readyBtn) {
+            readyBtn.textContent = `Ready (${data.readyPlayers}/${data.totalPlayers})`;
+        }
     });
 }
 
@@ -422,7 +432,19 @@ function handleGameKeyUp(e) {
 }
 
 function readyGame() {
+    if (localPlayer.ready) {
+        alert('Already marked as ready!');
+        return;
+    }
+    
+    if (!gameCanvas) {
+        alert('Game not initialized!');
+        return;
+    }
+    
     localPlayer.ready = true;
+    console.log('Emitting game_ready for player:', socket.id);
+    
     socket.emit('game_ready', {
         roomId: currentRoomId,
         playerId: socket.id,
