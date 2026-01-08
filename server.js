@@ -33,7 +33,18 @@ function loadMessages() {
   try {
     if (fs.existsSync(MESSAGES_FILE)) {
       const data = fs.readFileSync(MESSAGES_FILE, 'utf8');
-      return JSON.parse(data);
+      const messages = JSON.parse(data);
+      // Clear corrupted/encrypted messages - look for messages that appear to be base64
+      const hasCorruptedMessages = messages.some(msg => 
+        typeof msg.message === 'string' && 
+        msg.message.length > 50 && 
+        /^[A-Za-z0-9+/=]+$/.test(msg.message)
+      );
+      if (hasCorruptedMessages) {
+        console.log('Detected corrupted messages, clearing...');
+        return [];
+      }
+      return messages;
     }
   } catch (err) {
     console.error('Error loading messages:', err);
